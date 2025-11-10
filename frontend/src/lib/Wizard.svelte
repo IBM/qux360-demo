@@ -1,44 +1,155 @@
 <script>
-  import { Button, ProgressIndicator, ProgressStep } from "carbon-components-svelte";
+  import { Button, FileUploaderButton, ProgressIndicator, ProgressStep } from "carbon-components-svelte";
   import { fade } from "svelte/transition";
 
   let step = 1;
+  let steps = 3
+  let speakers = [];
+  let interviewee = "";
+  let selected = "";
+  let selectedFile = null;
+  let loading = false;
+  let errorMessage = "";
+  let filePath = "";
+  let uploading = false;
+  let files = [];
 
-  const nextStep = () => {
-    if (step < 3) step += 1;
+  const nextStep = () => { if (step < steps) step += 1; };
+  const prevStep = () => { if (step > 1) step -= 1; }; 
+  
+  const extractSpeakers = async () => {
+    if (!filePath) {
+      errorMessage = "Please enter a file path.";
+      return;
+    }
+
+    loading = true;
+    errorMessage = "";
+    speakers = [];
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/extract_speakers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: filePath }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      speakers = data.speakers || [];
+      interviewee = data.interviewee || ""
+    } catch (err) {
+      console.error(err);
+      errorMessage = err.message || "Processing failed";
+    } finally {
+      loading = false;
+    }
   };
 
-  const prevStep = () => {
-    if (step > 1) step -= 1;
+
+  const uploadFile = async () => {
+    if (!files) {
+      errorMessage = "Please select a file first.";
+      return;
+    }
+
+    selectedFile = files[0];
+
+    uploading = true;
+    errorMessage = "";
+    filePath = "";
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const data = await response.json();
+      if (data.file_path) {
+        filePath = data.file_path;
+        console.log("✅ Uploaded file path:", filePath);
+      } else {
+        throw new Error(data.error || "Unknown error");
+      }
+    } catch (err) {
+      console.error(err);
+      errorMessage = err.message || "Upload failed";
+    } finally {
+      uploading = false;
+    }
   };
+
+  async function handleExecute() {
+    const formData = new FormData();
+    formData.append("choice", selected);
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/execute`, { method: "POST", body: formData });
+    const data = await res.json();
+    alert(`Result: ${data.result}`);
+  }
 </script>
 
 <div class="wizard-container" transition:fade>
   <ProgressIndicator spaceEqually>
-    <ProgressStep labelText="User Info" completed={step > 1} current={step === 1} />
-    <ProgressStep labelText="Details" completed={step > 2} current={step === 2} />
-    <ProgressStep labelText="Result" current={step === 3} />
+    <ProgressStep labelText="Upload File" completed={step > 1} current={step === 1}/>
+    <ProgressStep labelText="Select Option" completed={step > 2} current={step === 2}/>
+    <ProgressStep labelText="Execute" current={step === 3}/>
   </ProgressIndicator>
 
   {#if step === 1}
     <div class="wizard-step">
-      <h2 class="wizard-step-title">Step 1: User Info</h2>
-      <p>Enter some basic user information.</p>
+      <h2>Step 1: Upload your transcript file</h2>
+    <FileUploaderButton
+      labelTitle="Select a file"
+      labelDescription="Only .csv, .xlsx or .docx files are supported"
+      buttonLabel="Browse"
+      multiple={false}
+      accept={[".csv", ".xlsx", ".docx"]}
+      bind:files
+      on:change={uploadFile}
+    />
+  {#if uploading}
+    <p>Uploading...</p> <!-- simple text instead of spinner -->
+  {/if}
+
+  {#if errorMessage}
+    <p style="color: red;">{errorMessage}</p>
+  {/if}
+
+  {#if filePath}
+    <p style="color: green;">✅ File uploaded! Path: {filePath}</p>
+  {/if}
     </div>
   {:else if step === 2}
-    <div class="wizard-step">
-      <h2 class="wizard-step-title">Step 2: Details</h2>
-      <p>Provide additional details for the process.</p>
-    </div>
+    <h2 class="wizard-step-title">Step 2: Extract Speakers</h2>
+    <Button on:click={extractSpeakers}>Extract Speakers</Button>
+    {#if speakers.length > 0}
+      <h3>Speakers</h3>
+      <ul>
+        {#each speakers as speaker}
+        {#if speaker == interviewee}
+          <li>{speaker} - Interviewee</li>
+        {:else}
+          <li>{speaker}</li>
+        {/if}
+        {/each}
+      </ul>
+    {/if}
   {:else}
-    <div class="wizard-step">
-      <h2 class="wizard-step-title">Step 3: Result</h2>
-      <p>All steps completed! 🎉</p>
-    </div>
+    <h2 class="wizard-step-title">Step 3: WORK IN PROGRESS</h2>
+    <Button on:click={handleExecute}>Run Function</Button>
   {/if}
 
   <div class="wizard-nav">
     <Button kind="secondary" on:click={prevStep} disabled={step === 1}>Back</Button>
-    <Button on:click={nextStep} disabled={step === 3}>Next</Button>
+    <Button on:click={nextStep} disabled={step === steps}>Next</Button>
   </div>
 </div>
