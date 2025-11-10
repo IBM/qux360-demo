@@ -18,11 +18,16 @@ DISABLE_AIOHTTP_TRANSPORT=True
 VITE_BACKEND_URL=http://localhost:8000
 ```
 
-
 ## 👩🏻‍💻 Option 1: Run it in your local environment without Docker (dev)
 
 ### Backend
 
+The first time you run it you need to run:
+```bash
+pip install -r requirements.txt
+```
+
+To upload the server:
 ```bash
 cd backend
 uvicorn main:app --reload
@@ -30,6 +35,12 @@ uvicorn main:app --reload
 
 ### Frontend
 
+The first time you run it you need to run:
+```bash
+npm install
+```
+
+To upload the server:
 ```bash
 cd frontend
 npm run dev
@@ -37,15 +48,15 @@ npm run dev
 
 ## 🐳 Option 2: Docker (dev)
 
-Start both services (frontend + backend) with Docker Compose for a convenient dev environment:
+Start both services (frontend + backend) with Docker Compose for a convenient dev environment. 
+
+From the root directory:
 
 ```bash
-# from the project root
 docker-compose up --build
 ```
+The compose setup mounts local folders into the containers so code changes are reflected immediately.
 
 ## 🚀 Enjoy it!
 - Backend will be available at `http://localhost:8000`
 - Frontend (Vite dev server) at `http://localhost:5173`
-
-The compose setup mounts local folders into the containers so code changes are reflected immediately.
