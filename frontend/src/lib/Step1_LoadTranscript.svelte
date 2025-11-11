@@ -52,9 +52,7 @@
   <div class="wizard-step">
     <h2 class="wizard-step-title">Step 1: Select your transcript file</h2>
     <FileUploaderButton
-      labelTitle="Select a file"
-      labelDescription="Only .csv, .xlsx or .docx files are supported"
-      buttonLabel="Browse"
+      labelText="Select a file (.csv, .xlsx, .docx)"
       multiple={false}
       accept={[".csv", ".xlsx", ".docx"]}
       bind:files
