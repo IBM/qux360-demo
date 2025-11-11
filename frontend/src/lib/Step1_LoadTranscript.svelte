@@ -35,7 +35,6 @@
       const data = await response.json();
       if (data.file_path) {
         filePath = data.file_path;
-        dispatch("fileUploaded", { filePath });
         console.log("✅ Selected file path:", filePath);
       } else {
         throw new Error(data.error || "Unknown error");
@@ -45,6 +44,7 @@
       errorMessage = err.message || "Selection failed";
     } finally {
       uploading = false;
+      dispatch("fileUploaded", { filePath });
     }
   };
 </script>

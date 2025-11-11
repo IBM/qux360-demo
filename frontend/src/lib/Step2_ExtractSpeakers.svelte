@@ -33,16 +33,16 @@
       const data = await response.json();
       speakers = data.speakers || [];
       interviewee = data.interviewee || ""
-      result = {
-        "speakers": speakers,
-        "interviewee": interviewee
-      }
-      dispatch("speakersExtracted", { result });
     } catch (err) {
       console.error(err);
       errorMessage = err.message || "Processing failed";
     } finally {
       extractingSpeakers = false;
+      result = {
+        "speakers": speakers,
+        "interviewee": interviewee
+      }
+      dispatch("speakersExtracted", { result });
     }
   };
 
