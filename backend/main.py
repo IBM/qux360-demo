@@ -45,7 +45,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 UPLOAD_DIR = "./app/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -91,13 +90,6 @@ async def extract_speakers(request: FilePathRequest):
         print(f"❌ qux360 failed: {e}")
         return {"speakers": [], "interviewee": "", "error": str(e)}
 
-
-
-@app.post("/analyze")
-async def analyze_file(path: str = Form(...)):
-    """Run qux360.xxxxxx(file) and return results"""
-    results = qux360.xxxxxx(path)  # <-- replace with actual function name
-    return {"results": results}
 
 @app.post("/execute")
 async def execute_action(choice: str = Form(...)):

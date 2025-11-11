@@ -96,12 +96,8 @@
   };
 
 
-  async function handleExecute() {
-    const formData = new FormData();
-    formData.append("choice", selected);
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/execute`, { method: "POST", body: formData });
-    const data = await res.json();
-    alert(`Result: ${data.result}`);
+  async function anonymize() {
+    // TODO
   }
 </script>
 
@@ -125,7 +121,7 @@
       on:change={selectFile}
     />
   {#if uploading}
-    <p>Uploading...</p> <!-- simple text instead of spinner -->
+    <p>Uploading...</p>
   {/if}
 
   {#if errorMessage}
@@ -140,13 +136,13 @@
     <h2 class="wizard-step-title">Step 2: Extract Speakers</h2>
     {#if extractingSpeakers}
       <Loading description="Extracting speakers..." withOverlay={false} small={true} />
-      <p>Please wait while speakers are extracted.</p>
+      <p>Please wait while speakers are extracted and the interviewee is identified.</p>
     {:else if speakers.length > 0}
-      <h3>Speakers</h3>
+      <h3 class="wizard-step-subtitle">Speakers</h3>
       <ul>
         {#each speakers as speaker}
         {#if speaker == interviewee}
-          <li>{speaker} - Interviewee</li>
+          <li><strong>{speaker} - Interviewee</strong></li>
         {:else}
           <li>{speaker}</li>
         {/if}
@@ -154,8 +150,7 @@
       </ul>
     {/if}
   {:else}
-    <h2 class="wizard-step-title">Step 3: WORK IN PROGRESS</h2>
-    <Button on:click={handleExecute}>Run Function</Button>
+    <h2 class="wizard-step-title">Step 3: Anonymization</h2>
   {/if}
 
   <div class="wizard-nav">
@@ -163,3 +158,4 @@
     <Button on:click={nextStep} disabled={step === steps}>Next</Button>
   </div>
 </div>
+
