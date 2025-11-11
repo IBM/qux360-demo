@@ -114,7 +114,7 @@
 
   {#if step === 1}
     <div class="wizard-step">
-      <h2>Step 1: Select your transcript file</h2>
+      <h2 class="wizard-step-title">Step 1: Select your transcript file</h2>
     <FileUploaderButton
       labelTitle="Select a file"
       labelDescription="Only .csv, .xlsx or .docx files are supported"
@@ -139,7 +139,7 @@
   {:else if step === 2}
     <h2 class="wizard-step-title">Step 2: Extract Speakers</h2>
     {#if extractingSpeakers}
-      <Loading description="Extracting speakers..." withOverlay={false} small={false} />
+      <Loading description="Extracting speakers..." withOverlay={false} small={true} />
       <p>Please wait while speakers are extracted.</p>
     {:else if speakers.length > 0}
       <h3>Speakers</h3>
