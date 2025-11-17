@@ -2,4 +2,4 @@ fastapi
 uvicorn[standard]
 python-multipart
 qux360
-dotenv
+python-dotenv
