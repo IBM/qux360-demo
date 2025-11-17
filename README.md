@@ -28,6 +28,14 @@ cd backend
 
 The first time you run it you need to run:
 ```bash
+poetry install
+source .venv/bin/activate
+```
+
+That will create a venv virtual environment for you.
+
+In case you prefer to install it manually, the `requirements.txt` file is provided:
+```bash
 pip install -r requirements.txt
 ```
 

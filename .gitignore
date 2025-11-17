@@ -3,3 +3,5 @@ __pycache__/
 node_modules
 backend/app/
 package-lock.json
+poetry.lock
+.DS_Store
