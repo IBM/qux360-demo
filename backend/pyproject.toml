@@ -1,0 +1,31 @@
+[project]
+name = "qux360-demo"
+version = "0.1.0"
+description = "Demo to show the capabilities of Qux360"
+authors = [
+    {name = "Mariela Lanza",email = "mlanza@ar.ibm.com"}
+]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "qux360",
+    "python-dotenv",
+    "pydantic",
+]
+
+[tool.poetry]
+package-mode = false
+
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2,<9.0.0",
+    "ipykernel (>=7.1.0,<8.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

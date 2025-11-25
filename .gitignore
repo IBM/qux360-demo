@@ -4,3 +4,5 @@ node_modules
 backend/app/
 frontend/dist/
 package-lock.json
+poetry.lock
+.DS_Store

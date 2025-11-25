@@ -22,27 +22,41 @@ VITE_BACKEND_URL=http://localhost:8000
 
 ### Backend
 
+```bash
+cd backend
+```
+
 The first time you run it you need to run:
+```bash
+poetry install
+source .venv/bin/activate
+```
+
+That will create a venv virtual environment for you.
+
+In case you prefer to install it manually, the `requirements.txt` file is provided:
 ```bash
 pip install -r requirements.txt
 ```
 
-To upload the server:
+To launch the server:
 ```bash
-cd backend
 uvicorn main:app --reload
 ```
 
 ### Frontend
+
+```bash
+cd frontend
+```
 
 The first time you run it you need to run:
 ```bash
 npm install
 ```
 
-To upload the server:
+To launch the web app:
 ```bash
-cd frontend
 npm run dev
 ```
 
