@@ -11,18 +11,6 @@
 html, body {
   height: 100%;
   font-family: "IBM Plex Sans", Arial, sans-serif;
-  background-color: #f4f4f4;
-  color: #161616;
-}
-
-/* App container */
-main {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  min-height: 100vh;
-  padding: 2rem;
 }
 
 /* Wizard layout */
@@ -54,33 +42,6 @@ main {
   display: flex;
   justify-content: space-between;
   margin-top: 2rem;
-}
-
-button {
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-/* Carbon overrides (optional) */
-.bx--btn {
-  border-radius: 0.375rem;
-}
-
-.bx--btn--primary {
-  background-color: #0f62fe;
-}
-
-.bx--btn--secondary {
-  background-color: #e0e0e0;
-  color: #161616;
-}
-
-.bx--btn--primary:hover {
-  background-color: #0353e9;
-}
-
-.bx--btn--secondary:hover {
-  background-color: #c6c6c6;
 }
 
 /* Smooth step transitions */

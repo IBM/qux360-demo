@@ -1,3 +1,5 @@
+import type { Component } from "svelte";
+
 export interface NotificationI {
     id: string;
     kind:
@@ -12,3 +14,15 @@ export interface NotificationI {
 }
 
 export type NewNotification = Omit<NotificationI, "id">;
+
+export interface ProgressStepI {
+    id: number;
+    label: string;
+    isComplete: boolean;
+    component: Component<{
+        currentStepIndex: number;
+        steps: ProgressStepI[];
+        studyName: string;
+        studyDescription: string;
+    }>;
+}
