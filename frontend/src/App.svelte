@@ -1,7 +1,12 @@
 <script>
-  import Wizard from './lib/Wizard.svelte';
+    import { Route, Router } from "svelte-routing";
+    import Wizard from "./lib/Wizard.svelte";
 </script>
 
-<main>
-  <Wizard />
-</main>
+<Router>
+    <Route>
+        <main>
+            <Wizard />
+        </main>
+    </Route>
+</Router>
