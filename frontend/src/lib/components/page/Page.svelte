@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { Header } from "$lib/components";
+    import { Header, Notifications } from "$lib/components";
     import { Content } from "carbon-components-svelte";
 </script>
 
 <div class="page-container">
     <Header />
     <div class="page-content">
+        <Notifications />
         <Content class="main-content-container">
             <slot name="main-content"></slot>
         </Content>
