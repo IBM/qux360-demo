@@ -59,6 +59,7 @@
         width: 736px;
         gap: 2rem;
         padding: 2rem;
+        background-color: var(--cds-ui-background, #ffffff);
         border: 0.5px solid var(--cds-border-subtle-selected);
         border-radius: 0.5rem;
     }

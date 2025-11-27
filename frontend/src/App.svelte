@@ -17,6 +17,6 @@
     .external-page-content-container {
         display: flex;
         justify-content: center;
-        padding-top: 4rem;
+        padding: 4rem 0;
     }
 </style>

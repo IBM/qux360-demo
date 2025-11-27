@@ -11,6 +11,7 @@
 html, body {
   height: 100%;
   font-family: "IBM Plex Sans", Arial, sans-serif;
+  background: linear-gradient(180deg, #FFFFFF 50%, #EDF5FF 100%);
 }
 
 .buttons-container {
