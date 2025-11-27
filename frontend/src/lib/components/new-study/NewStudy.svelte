@@ -4,6 +4,8 @@
     import Information from "./Information.svelte";
     import Transcripts from "./Transcripts.svelte";
 
+    export let isCreatingStudy: boolean;
+
     let currentStepIndex: number = 0;
     let steps: ProgressStepI[] = [
         {
@@ -41,6 +43,7 @@
         {#key currentStepIndex}
             <svelte:component
                 this={steps[currentStepIndex].component}
+                bind:isCreatingStudy
                 bind:currentStepIndex
                 bind:steps
                 bind:studyName

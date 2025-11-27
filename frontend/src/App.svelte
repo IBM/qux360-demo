@@ -1,5 +1,5 @@
 <script>
-    import { NewStudy, Page } from "$lib/components";
+    import { Home, Page } from "$lib/components";
     import { Route, Router } from "svelte-routing";
 </script>
 
@@ -7,7 +7,7 @@
     <Route>
         <Page>
             <div slot="main-content" class="external-page-content-container">
-                <NewStudy />
+                <Home />
             </div>
         </Page>
     </Route>

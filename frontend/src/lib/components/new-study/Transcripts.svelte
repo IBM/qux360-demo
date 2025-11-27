@@ -8,6 +8,7 @@
     import { Button, FileUploaderItem, Link } from "carbon-components-svelte";
     import { Upload } from "carbon-icons-svelte";
 
+    export let isCreatingStudy: boolean;
     export let currentStepIndex: number;
     export let steps: ProgressStepI[];
     export let studyName: string;

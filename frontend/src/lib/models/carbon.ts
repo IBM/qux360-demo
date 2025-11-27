@@ -20,6 +20,7 @@ export interface ProgressStepI {
     label: string;
     isComplete: boolean;
     component: Component<{
+        isCreatingStudy: boolean;
         currentStepIndex: number;
         steps: ProgressStepI[];
         studyName: string;

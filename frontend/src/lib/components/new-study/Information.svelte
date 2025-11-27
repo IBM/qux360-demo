@@ -2,10 +2,15 @@
     import type { ProgressStepI } from "$lib/models";
     import { Button, TextInput } from "carbon-components-svelte";
 
+    export let isCreatingStudy: boolean;
     export let currentStepIndex: number;
     export let steps: ProgressStepI[];
     export let studyName: string;
     export let studyDescription: string;
+
+    const cancelButtonClick = () => {
+        isCreatingStudy = false;
+    };
 
     const nextButtonClick = () => {
         steps[currentStepIndex].isComplete = true;
@@ -32,7 +37,7 @@
     </div>
 
     <div class="buttons-container">
-        <Button kind="secondary">Cancel</Button>
+        <Button kind="secondary" on:click={cancelButtonClick}>Cancel</Button>
         <Button
             kind="primary"
             disabled={studyName.trim() === "" || studyDescription.trim() === ""}
