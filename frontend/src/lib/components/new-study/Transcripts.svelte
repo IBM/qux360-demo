@@ -1,8 +1,8 @@
 <script lang="ts">
     import {
-        StudyFileStatus,
+        UploadedTranscriptFileStatus,
         type ProgressStepI,
-        type StudyFileI,
+        type UploadedTranscriptFileI,
     } from "$lib/models";
     import { utilsService } from "$lib/services";
     import { Button, FileUploaderItem, Link } from "carbon-components-svelte";
@@ -17,7 +17,7 @@
     const MAX_FILE_SIZE: number = 500 * 1024; // 500KB en bytes
     const FILE_SUPPORTED_TYPES: string[] = [".docx", ".xlsx", ".csv"];
 
-    let studyFiles: StudyFileI[] = [];
+    let uploadedTranscriptFiles: UploadedTranscriptFileI[] = [];
     let isDragging: boolean = false;
     let inputRef: HTMLInputElement;
 
@@ -46,7 +46,7 @@
     const handleFiles = (fileList: FileList | null | undefined): void => {
         if (!fileList) return;
 
-        const newFiles: StudyFileI[] = [];
+        const newFiles: UploadedTranscriptFileI[] = [];
 
         Array.from(fileList).forEach((file: File) => {
             const validation: {
@@ -58,19 +58,19 @@
                 newFiles.push({
                     id: utilsService.getUniqueId(),
                     file,
-                    status: StudyFileStatus.Success,
+                    status: UploadedTranscriptFileStatus.Success,
                 });
             } else {
                 newFiles.push({
                     id: utilsService.getUniqueId(),
                     file,
-                    status: StudyFileStatus.Error,
+                    status: UploadedTranscriptFileStatus.Error,
                     message: validation.message,
                 });
             }
         });
 
-        studyFiles = [...studyFiles, ...newFiles];
+        uploadedTranscriptFiles = [...uploadedTranscriptFiles, ...newFiles];
     };
 
     const handleDragOver = (e: DragEvent): void => {
@@ -103,7 +103,9 @@
     };
 
     const removeFile = (index: number): void => {
-        studyFiles = studyFiles.filter((_, i) => i !== index);
+        uploadedTranscriptFiles = uploadedTranscriptFiles.filter(
+            (_, i) => i !== index,
+        );
     };
 
     const cancelButtonClick = () => {
@@ -156,14 +158,14 @@
     </div>
 </div>
 
-{#if studyFiles.length > 0}
+{#if uploadedTranscriptFiles.length > 0}
     <div class="file-uploader-items-container">
-        {#each studyFiles as item, index (item.id)}
+        {#each uploadedTranscriptFiles as item, index (item.id)}
             <FileUploaderItem
                 class="file-uploader-item"
                 id={item.id}
                 name={item.file.name}
-                invalid={item.status === StudyFileStatus.Error}
+                invalid={item.status === UploadedTranscriptFileStatus.Error}
                 errorSubject={item.message}
                 status="edit"
                 on:delete={() => removeFile(index)}

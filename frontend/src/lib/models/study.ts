@@ -1,15 +1,15 @@
 import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 
-export enum StudyFileStatus {
+export enum UploadedTranscriptFileStatus {
     Success = "success",
     Error = "error",
 }
 
-export interface StudyFileI {
+export interface UploadedTranscriptFileI {
     id: string;
     file: File;
-    status: StudyFileStatus;
+    status: UploadedTranscriptFileStatus;
     message?: string;
 }
 
