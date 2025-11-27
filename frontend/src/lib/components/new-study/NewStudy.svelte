@@ -2,6 +2,7 @@
     import type { ProgressStepI } from "$lib/models";
     import { ProgressIndicator, ProgressStep } from "carbon-components-svelte";
     import Information from "./Information.svelte";
+    import Transcripts from "./Transcripts.svelte";
 
     let currentStepIndex: number = 0;
     let steps: ProgressStepI[] = [
@@ -15,7 +16,7 @@
             id: 1,
             label: "Transcripts",
             isComplete: false,
-            component: Information,
+            component: Transcripts,
         },
     ];
 

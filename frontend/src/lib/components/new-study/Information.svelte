@@ -55,13 +55,4 @@
         flex-direction: column;
         gap: 1rem;
     }
-
-    .buttons-container {
-        display: flex;
-        justify-content: end;
-    }
-
-    :global(.buttons-container .bx--btn) {
-        width: 160px;
-    }
 </style>

@@ -13,6 +13,16 @@ html, body {
   font-family: "IBM Plex Sans", Arial, sans-serif;
 }
 
+.buttons-container {
+  display: flex;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.buttons-container .bx--btn {
+  width: 160px;
+}
+
 /* Wizard layout */
 .wizard-container {
   background: #ffffff;
