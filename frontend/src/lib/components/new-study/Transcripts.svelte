@@ -23,6 +23,14 @@
     let isDragging: boolean = false;
     let inputRef: HTMLInputElement;
 
+    let hasValidFiles: boolean = false;
+
+    $: hasValidFiles = uploadedTranscriptFiles.some(
+        (uploadedTranscriptFile) =>
+            uploadedTranscriptFile.status ===
+            UploadedTranscriptFileStatus.Success,
+    );
+
     const validateFile = (file: File): { valid: boolean; message?: string } => {
         const fileName: string = file.name;
         const fileExtension: string =
@@ -202,6 +210,7 @@
     <Button kind="secondary" on:click={cancelButtonClick}>Cancel</Button>
     <Button
         kind="primary"
+        disabled={!hasValidFiles}
         on:click={async () => {
             await createButtonClick();
         }}
