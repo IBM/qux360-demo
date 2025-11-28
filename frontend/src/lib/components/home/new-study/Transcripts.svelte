@@ -6,7 +6,8 @@
         type StudyI,
         type UploadedTranscriptFileI,
     } from "$lib/models";
-    import { studiesCacheService, utilsService } from "$lib/services";
+    import { utilsService } from "$lib/services";
+    import { studiesStore } from "$lib/stores";
     import { Button, FileUploaderItem, Link } from "carbon-components-svelte";
     import { Upload } from "carbon-icons-svelte";
 
@@ -197,7 +198,7 @@
             description: studyDescription,
             transcriptFiles: serializedFiles,
         };
-        studiesCacheService.save(newStudy);
+        studiesStore.add(newStudy);
 
         steps[currentStepIndex].isComplete = true;
         isCreatingStudy = false;

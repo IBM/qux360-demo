@@ -15,6 +15,14 @@ class StudiesCacheService {
         studies.push(study);
         localStorage.setItem(CACHE_KEY, JSON.stringify(studies));
     }
+
+    public delete(id: string): void {
+        const studies: StudyI[] = this.getAll();
+        const updated: StudyI[] = studies.filter(
+            (study: StudyI) => study.id !== id,
+        );
+        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+    }
 }
 
 export default new StudiesCacheService();

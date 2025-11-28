@@ -1,24 +1,18 @@
 <script lang="ts">
     import type { StudyI } from "$lib/models";
-    import { studiesCacheService } from "$lib/services";
+    import { studiesStore } from "$lib/stores";
     import { Button, Checkbox, Search } from "carbon-components-svelte";
     import { Add } from "carbon-icons-svelte";
-    import { onMount } from "svelte";
     import { StudyCard } from ".";
 
     export let isCreatingStudy: boolean;
 
-    let studies: StudyI[] = [];
     let filteredStudies: StudyI[] = [];
     let searchStudyValue: string = "";
 
-    $: filteredStudies = studies.filter((study: StudyI) =>
+    $: filteredStudies = $studiesStore.filter((study: StudyI) =>
         study.name.toLowerCase().includes(searchStudyValue.toLowerCase()),
     );
-
-    onMount(() => {
-        studies = studiesCacheService.getAll();
-    });
 
     const handleNewStudyButtonClick = (): void => {
         isCreatingStudy = true;

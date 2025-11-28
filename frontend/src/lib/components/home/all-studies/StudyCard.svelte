@@ -2,8 +2,15 @@
     import type { StudyI } from "$lib/models";
     import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
     import { TrashCan } from "carbon-icons-svelte";
+    import { DeleteStudyModal } from ".";
 
     export let study: StudyI;
+
+    let isDeleteStudyModalOpen: boolean = false;
+
+    const handleDeleteStudyOptionClick = (): void => {
+        isDeleteStudyModalOpen = true;
+    };
 </script>
 
 <div class="study-card-container">
@@ -18,7 +25,13 @@
     <OverflowMenu class="study-card-overflow-menu" flipped size="xl">
         <OverflowMenuItem text="Rename study" on:click={() => {}} />
         <OverflowMenuItem text="AI settings" on:click={() => {}} />
-        <OverflowMenuItem danger hasDivider on:click={() => {}}>
+        <OverflowMenuItem
+            danger
+            hasDivider
+            on:click={() => {
+                handleDeleteStudyOptionClick();
+            }}
+        >
             <div class="delete-item-container">
                 <span>Delete</span>
                 <TrashCan></TrashCan>
@@ -26,6 +39,15 @@
         </OverflowMenuItem>
     </OverflowMenu>
 </div>
+
+{#key isDeleteStudyModalOpen}
+    {#if isDeleteStudyModalOpen}
+        <DeleteStudyModal
+            bind:isModalOpen={isDeleteStudyModalOpen}
+            studyToDelete={study}
+        />
+    {/if}
+{/key}
 
 <style lang="scss">
     @use "@carbon/type";
