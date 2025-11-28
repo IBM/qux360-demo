@@ -16,7 +16,13 @@
     export let studyName: string;
     export let studyDescription: string;
 
-    const MAX_FILE_SIZE: number = 500 * 1024; // 500KB en bytes
+    interface ValidationI {
+        valid: boolean;
+        message?: string;
+    }
+
+    const MAX_FILE_SIZE_KB: number = 500;
+    const MAX_FILE_SIZE: number = MAX_FILE_SIZE_KB * 1024; // 500KB en bytes
     const FILE_SUPPORTED_TYPES: string[] = [".docx", ".xlsx", ".csv"];
 
     let uploadedTranscriptFiles: UploadedTranscriptFileI[] = [];
@@ -31,10 +37,26 @@
             UploadedTranscriptFileStatus.Success,
     );
 
-    const validateFile = (file: File): { valid: boolean; message?: string } => {
+    const validateFile = (
+        file: File,
+        existingFiles: UploadedTranscriptFileI[] = [],
+    ): ValidationI => {
         const fileName: string = file.name;
         const fileExtension: string =
             "." + fileName.split(".").pop()?.toLowerCase();
+
+        const fileAlreadyUploaded: boolean = existingFiles.some(
+            (uploadedTranscriptFile) =>
+                uploadedTranscriptFile.file.name === fileName &&
+                uploadedTranscriptFile.file.size === file.size,
+        );
+
+        if (fileAlreadyUploaded) {
+            return {
+                valid: false,
+                message: `The file "${file.name}" has already been uploaded.`,
+            };
+        }
 
         if (!FILE_SUPPORTED_TYPES.includes(fileExtension)) {
             return {
@@ -46,11 +68,41 @@
         if (file.size > MAX_FILE_SIZE) {
             return {
                 valid: false,
-                message: `The file exceeds the maximum size of ${MAX_FILE_SIZE}KB. Current size: ${(file.size / 1024).toFixed(2)}KB`,
+                message: `The file exceeds the maximum size of ${MAX_FILE_SIZE_KB}KB. Current size: ${(file.size / 1024).toFixed(2)}KB`,
             };
         }
 
         return { valid: true };
+    };
+
+    const revalidateFiles = (): void => {
+        uploadedTranscriptFiles = uploadedTranscriptFiles.map(
+            (uploadedTranscriptFile) => {
+                const validation: ValidationI = validateFile(
+                    uploadedTranscriptFile.file,
+                    uploadedTranscriptFiles.filter(
+                        (f) => f.id !== uploadedTranscriptFile.id,
+                    ),
+                );
+
+                const newStatus: UploadedTranscriptFileStatus = validation.valid
+                    ? UploadedTranscriptFileStatus.Success
+                    : UploadedTranscriptFileStatus.Error;
+
+                if (
+                    uploadedTranscriptFile.status !== newStatus ||
+                    uploadedTranscriptFile.message !== validation.message
+                ) {
+                    return {
+                        ...uploadedTranscriptFile,
+                        status: newStatus,
+                        message: validation.message,
+                    };
+                }
+
+                return uploadedTranscriptFile;
+            },
+        );
     };
 
     const handleFiles = (fileList: FileList | null | undefined): void => {
@@ -59,28 +111,28 @@
         const newFiles: UploadedTranscriptFileI[] = [];
 
         Array.from(fileList).forEach((file: File) => {
-            const validation: {
-                valid: boolean;
-                message?: string;
-            } = validateFile(file);
+            const validation: ValidationI = validateFile(
+                file,
+                uploadedTranscriptFiles,
+            );
 
-            if (validation.valid) {
-                newFiles.push({
-                    id: utilsService.getUniqueId(),
-                    file,
-                    status: UploadedTranscriptFileStatus.Success,
-                });
-            } else {
-                newFiles.push({
-                    id: utilsService.getUniqueId(),
-                    file,
-                    status: UploadedTranscriptFileStatus.Error,
-                    message: validation.message,
-                });
-            }
+            newFiles.push({
+                id: utilsService.getUniqueId(),
+                file,
+                status: validation.valid
+                    ? UploadedTranscriptFileStatus.Success
+                    : UploadedTranscriptFileStatus.Error,
+                message: validation.message,
+            });
         });
 
         uploadedTranscriptFiles = [...uploadedTranscriptFiles, ...newFiles];
+
+        revalidateFiles();
+
+        if (inputRef) {
+            inputRef.value = "";
+        }
     };
 
     const handleDragOver = (e: DragEvent): void => {
@@ -116,6 +168,8 @@
         uploadedTranscriptFiles = uploadedTranscriptFiles.filter(
             (_, i) => i !== index,
         );
+
+        revalidateFiles();
     };
 
     const cancelButtonClick = (): void => {
