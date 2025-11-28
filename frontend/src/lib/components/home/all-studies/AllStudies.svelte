@@ -1,10 +1,24 @@
 <script lang="ts">
+    import type { StudyI } from "$lib/models";
+    import { studiesCacheService } from "$lib/services";
     import { Button, Checkbox, Search } from "carbon-components-svelte";
     import { Add } from "carbon-icons-svelte";
+    import { onMount } from "svelte";
+    import { StudyCard } from ".";
 
     export let isCreatingStudy: boolean;
 
+    let studies: StudyI[] = [];
+    let filteredStudies: StudyI[] = [];
     let searchStudyValue: string = "";
+
+    $: filteredStudies = studies.filter((study: StudyI) =>
+        study.name.toLowerCase().includes(searchStudyValue.toLowerCase()),
+    );
+
+    onMount(() => {
+        studies = studiesCacheService.getAll();
+    });
 
     const handleNewStudyButtonClick = (): void => {
         isCreatingStudy = true;
@@ -29,6 +43,14 @@
             New study
         </Button>
     </div>
+
+    {#if filteredStudies.length > 0}
+        <div class="study-cards-container">
+            {#each filteredStudies as study (study.id)}
+                <StudyCard {study} />
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <style lang="scss">
@@ -49,6 +71,7 @@
     .action-bar {
         display: flex;
         justify-content: space-between;
+        margin-bottom: 2rem;
     }
 
     .filters-container {
@@ -59,6 +82,12 @@
     .review-required-checkbox-container {
         display: flex;
         flex-direction: column;
+    }
+
+    .study-cards-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 
     :global(.bx--search) {
