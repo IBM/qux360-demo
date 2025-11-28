@@ -2,9 +2,11 @@
     import {
         UploadedTranscriptFileStatus,
         type ProgressStepI,
+        type SerializableTranscriptFileI,
+        type StudyI,
         type UploadedTranscriptFileI,
     } from "$lib/models";
-    import { utilsService } from "$lib/services";
+    import { studiesCacheService, utilsService } from "$lib/services";
     import { Button, FileUploaderItem, Link } from "carbon-components-svelte";
     import { Upload } from "carbon-icons-svelte";
 
@@ -108,13 +110,35 @@
         );
     };
 
-    const cancelButtonClick = () => {
+    const cancelButtonClick = (): void => {
         currentStepIndex--;
         steps[currentStepIndex].isComplete = false;
     };
 
-    const createButtonClick = () => {
+    const createButtonClick = async (): Promise<void> => {
+        const successfulFiles: File[] = uploadedTranscriptFiles
+            .filter(
+                (uploadedTranscriptFile) =>
+                    uploadedTranscriptFile.status ===
+                    UploadedTranscriptFileStatus.Success,
+            )
+            .map((uploadedTranscriptFile) => uploadedTranscriptFile.file);
+
+        const serializedFiles: SerializableTranscriptFileI[] =
+            await Promise.all(
+                successfulFiles.map(utilsService.fileToSerializable),
+            );
+
+        const newStudy: StudyI = {
+            id: utilsService.getUniqueId(),
+            name: studyName,
+            description: studyDescription,
+            transcriptFiles: serializedFiles,
+        };
+        studiesCacheService.save(newStudy);
+
         steps[currentStepIndex].isComplete = true;
+        isCreatingStudy = false;
     };
 </script>
 
@@ -176,7 +200,14 @@
 
 <div class="buttons-container">
     <Button kind="secondary" on:click={cancelButtonClick}>Cancel</Button>
-    <Button kind="primary" on:click={createButtonClick}>Create</Button>
+    <Button
+        kind="primary"
+        on:click={async () => {
+            await createButtonClick();
+        }}
+    >
+        Create
+    </Button>
 </div>
 
 <style lang="scss">

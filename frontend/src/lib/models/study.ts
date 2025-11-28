@@ -19,3 +19,17 @@ export interface TranscriptStatusI {
     status: string;
     description: string;
 }
+
+export interface SerializableTranscriptFileI {
+    name: string;
+    content: string;
+    size: number;
+    type: string;
+}
+
+export interface StudyI {
+    id: string;
+    name: string;
+    description: string;
+    transcriptFiles: SerializableTranscriptFileI[];
+}
