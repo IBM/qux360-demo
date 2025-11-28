@@ -2,11 +2,16 @@
     import type { StudyI } from "$lib/models";
     import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
     import { TrashCan } from "carbon-icons-svelte";
-    import { DeleteStudyModal } from ".";
+    import { AISettingsModal, DeleteStudyModal } from ".";
 
     export let study: StudyI;
 
+    let isAISettingsModalOpen: boolean = false;
     let isDeleteStudyModalOpen: boolean = false;
+
+    const handleAISettingsOptionClick = (): void => {
+        isAISettingsModalOpen = true;
+    };
 
     const handleDeleteStudyOptionClick = (): void => {
         isDeleteStudyModalOpen = true;
@@ -24,7 +29,12 @@
 
     <OverflowMenu class="study-card-overflow-menu" flipped size="xl">
         <OverflowMenuItem text="Rename study" on:click={() => {}} />
-        <OverflowMenuItem text="AI settings" on:click={() => {}} />
+        <OverflowMenuItem
+            text="AI settings"
+            on:click={() => {
+                handleAISettingsOptionClick();
+            }}
+        />
         <OverflowMenuItem
             danger
             hasDivider
@@ -39,6 +49,12 @@
         </OverflowMenuItem>
     </OverflowMenu>
 </div>
+
+{#key isAISettingsModalOpen}
+    {#if isAISettingsModalOpen}
+        <AISettingsModal bind:isModalOpen={isAISettingsModalOpen} {study} />
+    {/if}
+{/key}
 
 {#key isDeleteStudyModalOpen}
     {#if isDeleteStudyModalOpen}

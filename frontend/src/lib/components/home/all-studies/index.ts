@@ -1,4 +1,5 @@
+import AISettingsModal from "./AISettingsModal.svelte";
 import DeleteStudyModal from "./DeleteStudyModal.svelte";
 import StudyCard from "./StudyCard.svelte";
 
-export { DeleteStudyModal, StudyCard };
+export { AISettingsModal, DeleteStudyModal, StudyCard };
