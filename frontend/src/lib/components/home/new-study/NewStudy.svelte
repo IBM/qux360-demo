@@ -1,8 +1,7 @@
 <script lang="ts">
     import type { ProgressStepI } from "$lib/models";
     import { ProgressIndicator, ProgressStep } from "carbon-components-svelte";
-    import Information from "./Information.svelte";
-    import Transcripts from "./Transcripts.svelte";
+    import { Information, Transcripts } from ".";
 
     export let isCreatingStudy: boolean;
 
