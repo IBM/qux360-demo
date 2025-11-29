@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { ProgressStepI } from "$lib/models";
-    import { Button, TextInput } from "carbon-components-svelte";
+    import { Button, Stack, TextInput } from "carbon-components-svelte";
 
     export let isCreatingStudy: boolean;
     export let currentStepIndex: number;
@@ -18,8 +18,8 @@
     };
 </script>
 
-<div class="new-study-information-container">
-    <div class="inputs-container">
+<Stack gap={10}>
+    <Stack gap={5}>
         <TextInput
             bind:value={studyName}
             labelText="Study name"
@@ -34,7 +34,7 @@
             placeholder=""
             required
         />
-    </div>
+    </Stack>
 
     <div class="buttons-container">
         <Button kind="secondary" on:click={cancelButtonClick}>Cancel</Button>
@@ -46,18 +46,7 @@
             Next
         </Button>
     </div>
-</div>
+</Stack>
 
 <style lang="scss">
-    .new-study-information-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4rem;
-    }
-
-    .inputs-container {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
 </style>

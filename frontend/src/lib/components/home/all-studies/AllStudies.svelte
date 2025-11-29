@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { StudyI } from "$lib/models";
     import { studiesStore } from "$lib/stores";
-    import { Button, Checkbox, Search } from "carbon-components-svelte";
+    import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
     import { Add } from "carbon-icons-svelte";
     import { StudyCard } from ".";
 
@@ -23,7 +23,7 @@
     <h4 class="home-header">Studies</h4>
 
     <div class="action-bar">
-        <div class="filters-container">
+        <Stack gap={5} orientation="horizontal">
             <Search
                 bind:value={searchStudyValue}
                 placeholder="Search for a study"
@@ -32,18 +32,18 @@
                 <span class="bx--label">Filter</span>
                 <Checkbox labelText="Review required" />
             </div>
-        </div>
+        </Stack>
         <Button kind="primary" icon={Add} on:click={handleNewStudyButtonClick}>
             New study
         </Button>
     </div>
 
     {#if filteredStudies.length > 0}
-        <div class="study-cards-container">
+        <Stack gap={5}>
             {#each filteredStudies as study (study.id)}
                 <StudyCard {study} />
             {/each}
-        </div>
+        </Stack>
     {/if}
 </div>
 
@@ -68,20 +68,9 @@
         margin-bottom: 2rem;
     }
 
-    .filters-container {
-        display: flex;
-        gap: 1rem;
-    }
-
     .review-required-checkbox-container {
         display: flex;
         flex-direction: column;
-    }
-
-    .study-cards-container {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
     }
 
     :global(.bx--search) {
