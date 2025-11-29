@@ -11,7 +11,7 @@ const createStudiesStore = () => {
         subscribe,
         refresh: () => set(studiesCacheService.getAll()),
         add: (study: StudyI) => {
-            studiesCacheService.save(study);
+            studiesCacheService.add(study);
             update((studies: StudyI[]) => [...studies, study]);
         },
         update: (updatedStudy: StudyI) => {

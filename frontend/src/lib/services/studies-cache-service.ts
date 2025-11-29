@@ -10,7 +10,7 @@ class StudiesCacheService {
         return raw ? JSON.parse(raw) : [];
     }
 
-    public save(study: StudyI): void {
+    public add(study: StudyI): void {
         const studies: StudyI[] = this.getAll();
         studies.push(study);
         localStorage.setItem(CACHE_KEY, JSON.stringify(studies));
