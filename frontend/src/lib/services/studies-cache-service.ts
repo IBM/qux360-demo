@@ -16,6 +16,14 @@ class StudiesCacheService {
         localStorage.setItem(CACHE_KEY, JSON.stringify(studies));
     }
 
+    public update(updatedStudy: StudyI): void {
+        const studies: StudyI[] = this.getAll();
+        const updated: StudyI[] = studies.map((s: StudyI) =>
+            s.id === updatedStudy.id ? updatedStudy : s,
+        );
+        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+    }
+
     public delete(id: string): void {
         const studies: StudyI[] = this.getAll();
         const updated: StudyI[] = studies.filter(

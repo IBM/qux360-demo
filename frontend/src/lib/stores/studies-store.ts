@@ -14,6 +14,14 @@ const createStudiesStore = () => {
             studiesCacheService.save(study);
             update((studies: StudyI[]) => [...studies, study]);
         },
+        update: (updatedStudy: StudyI) => {
+            studiesCacheService.update(updatedStudy);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) =>
+                    s.id === updatedStudy.id ? updatedStudy : s,
+                ),
+            );
+        },
         delete: (id: string) => {
             studiesCacheService.delete(id);
             update((studies: StudyI[]) =>
