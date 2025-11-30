@@ -226,6 +226,7 @@
         tabindex="0"
         aria-label="Drop files here"
         class="drop-files-container"
+        class:drop-files-container-dragging={isDragging}
         on:dragover={handleDragOver}
         on:dragleave={handleDragLeave}
         on:drop={handleDrop}
@@ -287,9 +288,15 @@
     }
 
     .drop-files-container {
-        border: 1px solid var(--cds-border-strong);
+        border-width: 1px;
+        border-color: var(--cds-border-strong);
         border-style: dashed;
         border-radius: 4px;
+    }
+
+    .drop-files-container-dragging {
+        outline: 2px solid var(--cds-border-interactive);
+        outline-offset: -2px;
     }
 
     .drop-files-internal-container {
