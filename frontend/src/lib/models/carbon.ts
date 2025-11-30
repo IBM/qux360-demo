@@ -27,3 +27,8 @@ export interface ProgressStepI {
         studyDescription: string;
     }>;
 }
+
+export interface TabI {
+    id: string;
+    label: string;
+}
