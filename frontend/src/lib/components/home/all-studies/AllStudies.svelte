@@ -30,7 +30,7 @@
             />
             <div class="review-required-checkbox-container">
                 <span class="bx--label">Filter</span>
-                <Checkbox labelText="Review required" />
+                <Checkbox class="checkbox" labelText="Review required" />
             </div>
         </Stack>
         <Button kind="primary" icon={Add} on:click={handleNewStudyButtonClick}>
@@ -71,9 +71,6 @@
     .review-required-checkbox-container {
         display: flex;
         flex-direction: column;
-    }
-
-    :global(.bx--search) {
-        width: 350px;
+        justify-content: center;
     }
 </style>

@@ -96,7 +96,7 @@
     .study-card-container {
         display: flex;
         align-items: center;
-        padding: 2rem 1rem;
+        padding: 1.5rem 1rem;
         background-color: var(--cds-ui-background);
         box-shadow: 2px 4px 12px 0px #00000014;
         border: 0.5px solid var(--cds-border-subtle-selected);

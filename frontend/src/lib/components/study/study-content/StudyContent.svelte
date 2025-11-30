@@ -3,6 +3,7 @@
     import { selectedStudyIdStore, selectedStudyStore } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft } from "carbon-icons-svelte";
+    import { Transcripts } from ".";
 
     enum TabID {
         Transcripts = "transcripts",
@@ -61,6 +62,9 @@
             {/each}
         </ul>
     </div>
+    {#if activeTab === TabID.Transcripts}
+        <Transcripts transcriptFiles={$selectedStudyStore.transcriptFiles} />
+    {/if}
 {/if}
 
 <style lang="scss">
@@ -85,6 +89,7 @@
     }
 
     .tabs-container {
+        position: relative;
         height: calc(2.5rem - 0.5px);
         border-bottom: 1px solid var(--cds-border-subtle-selected);
     }

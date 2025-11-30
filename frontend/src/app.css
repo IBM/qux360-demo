@@ -24,6 +24,35 @@ html, body {
   width: 160px;
 }
 
+.bx--search {
+  width: 350px;
+}
+
+.checkbox {
+  flex: unset;
+  margin: 0 !important;
+}
+
+.checkbox .bx--checkbox-label {
+  padding-top: 0;
+  min-height: unset;
+}
+
+.checkbox .bx--checkbox-label::before {
+  top: 0;
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+.checkbox .bx--checkbox-label::after {
+  top: .3rem;
+}
+
+.checkbox .bx--checkbox-label-text {
+  line-height: 1.125rem;
+  height: 1.125rem;
+}
+
 /* Wizard layout */
 .wizard-container {
   background: #ffffff;
