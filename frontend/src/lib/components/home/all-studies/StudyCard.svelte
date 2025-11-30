@@ -29,7 +29,7 @@
 </script>
 
 <div class="study-card-container" on:click|self={handleStudyCardClick}>
-    <div class="study-details-container">
+    <div class="study-details-container" on:click={handleStudyCardClick}>
         <span class="study-detail-text">{study.name}</span>
         <div class="separator"></div>
         <span class="study-detail-text">
