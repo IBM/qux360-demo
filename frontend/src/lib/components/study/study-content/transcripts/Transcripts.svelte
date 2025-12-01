@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { TranscriptFileI } from "$lib/models";
+    import { TranscriptState, type TranscriptFileI } from "$lib/models";
     import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
     import { TranscriptCard } from ".";
 
@@ -8,6 +8,9 @@
     let filteredTranscripts: TranscriptFileI[] = [];
     let searchTranscriptValue: string = "";
 
+    let filterNeedsReview: boolean = false;
+    let filterReady: boolean = false;
+
     let checkedTranscriptsMap: Record<string, boolean> = {};
 
     let allSelected: boolean = false;
@@ -15,10 +18,20 @@
     let mixedSelection: boolean = false;
 
     $: filteredTranscripts = transcriptFiles.filter(
-        (transcript: TranscriptFileI) =>
-            transcript.name
+        (transcript: TranscriptFileI) => {
+            const matchesSearch: boolean = transcript.name
                 .toLowerCase()
-                .includes(searchTranscriptValue.toLowerCase()),
+                .includes(searchTranscriptValue.toLowerCase());
+
+            const matchesFilter: boolean =
+                (filterNeedsReview &&
+                    transcript.status.state === TranscriptState.Review) ||
+                (filterReady &&
+                    transcript.status.state === TranscriptState.Ready) ||
+                (!filterNeedsReview && !filterReady);
+
+            return matchesSearch && matchesFilter;
+        },
     );
 
     $: allSelected =
@@ -66,8 +79,16 @@
             <div class="review-required-checkbox-external-container">
                 <span class="bx--label">Filter</span>
                 <div class="review-required-checkbox-internal-container">
-                    <Checkbox class="checkbox" labelText="Needs review" />
-                    <Checkbox class="checkbox" labelText="Ready" />
+                    <Checkbox
+                        class="checkbox"
+                        labelText="Needs review"
+                        bind:checked={filterNeedsReview}
+                    />
+                    <Checkbox
+                        class="checkbox"
+                        labelText="Ready"
+                        bind:checked={filterReady}
+                    />
                 </div>
             </div>
         </Stack>
