@@ -2,7 +2,7 @@
     import type { TabI } from "$lib/models";
     import { selectedStudyIdStore, selectedStudyStore } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
-    import { ArrowLeft } from "carbon-icons-svelte";
+    import { ArrowLeft, Settings } from "carbon-icons-svelte";
     import { Transcripts } from ".";
 
     enum TabID {
@@ -23,6 +23,10 @@
         selectedStudyIdStore.set(null);
     };
 
+    const handleAISettingsButtonClick = (): void => {
+        // TODO: Add functionality
+    };
+
     const selectTab = (id: string): void => {
         activeTab = id;
     };
@@ -41,6 +45,13 @@
             </Button>
             <h4 class="study-content-header">{$selectedStudyStore.name}</h4>
         </div>
+        <Button
+            kind="ghost"
+            icon={Settings}
+            on:click={handleAISettingsButtonClick}
+        >
+            AI settings
+        </Button>
     </div>
     <div class="tabs-container">
         <ul class="bx--tabs__nav bx--tabs__nav--hidden">
