@@ -3,16 +3,26 @@
     import { Checkbox, OverflowMenu } from "carbon-components-svelte";
 
     export let transcript: SerializableTranscriptFileI;
+    export let checked: boolean = false;
+    export let onCheckChange: (value: boolean) => void = () => {};
 
     const handleTranscriptCardClick = (): void => {};
+
+    const onCheckboxChange = (event: Event): void => {
+        const value: boolean = (event.target as HTMLInputElement).checked;
+        checked = value;
+        onCheckChange(value);
+    };
 </script>
 
 <div
-    class="transcript-card-container"
+    class="transcript-card-container {checked
+        ? 'transcript-card-container-checked'
+        : ''}"
     on:click|self={handleTranscriptCardClick}
 >
     <div class="checkbox-container">
-        <Checkbox />
+        <Checkbox {checked} on:change={onCheckboxChange} />
     </div>
     <div
         class="transcript-details-container"
@@ -47,6 +57,10 @@
         cursor: pointer;
         background-color: var(--cds-hover-ui);
         border-color: var(--cds-border-interactive);
+    }
+
+    .transcript-card-container-checked {
+        background-color: var(--cds-layer-selected);
     }
 
     :global(

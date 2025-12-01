@@ -8,6 +8,12 @@
     let filteredTranscripts: SerializableTranscriptFileI[] = [];
     let searchTranscriptValue: string = "";
 
+    let checkedTranscriptsMap: Record<string, boolean> = {};
+
+    let allSelected: boolean = false;
+    let noneSelected: boolean = false;
+    let mixedSelection: boolean = false;
+
     $: filteredTranscripts = transcriptFiles.filter(
         (transcript: SerializableTranscriptFileI) =>
             transcript.name
@@ -15,8 +21,40 @@
                 .includes(searchTranscriptValue.toLowerCase()),
     );
 
+    $: allSelected =
+        filteredTranscripts.length > 0 &&
+        filteredTranscripts.every(
+            (t: SerializableTranscriptFileI) => checkedTranscriptsMap[t.name],
+        );
+
+    $: noneSelected =
+        filteredTranscripts.length > 0 &&
+        filteredTranscripts.every(
+            (t: SerializableTranscriptFileI) => !checkedTranscriptsMap[t.name],
+        );
+
+    $: mixedSelection = !allSelected && !noneSelected;
+
     const handleUploadTranscriptsButtonClick = (): void => {
         // TODO: Add functionality
+    };
+
+    const handleSelectAll = (): void => {
+        filteredTranscripts.forEach(
+            (t: SerializableTranscriptFileI) =>
+                (checkedTranscriptsMap[t.name] = true),
+        );
+    };
+
+    const handleDeselectAll = (): void => {
+        filteredTranscripts.forEach(
+            (t: SerializableTranscriptFileI) =>
+                (checkedTranscriptsMap[t.name] = false),
+        );
+    };
+
+    const updateTranscriptSelection = (name: string, value: boolean): void => {
+        checkedTranscriptsMap[name] = value;
     };
 </script>
 
@@ -39,14 +77,56 @@
             Upload transcripts
         </Button>
     </div>
-    <Button class="select-all-button" kind="ghost" size="small">
-        Select all
-    </Button>
+
+    <div class="select-buttons">
+        {#if mixedSelection}
+            <Button
+                class="select-button"
+                kind="ghost"
+                size="small"
+                on:click={handleSelectAll}
+            >
+                Select all
+            </Button>
+
+            <Button
+                class="deselect-button"
+                kind="ghost"
+                size="small"
+                on:click={handleDeselectAll}
+            >
+                Deselect all
+            </Button>
+        {:else if allSelected}
+            <Button
+                class="deselect-button"
+                kind="ghost"
+                size="small"
+                on:click={handleDeselectAll}
+            >
+                Deselect all
+            </Button>
+        {:else}
+            <Button
+                class="select-button"
+                kind="ghost"
+                size="small"
+                on:click={handleSelectAll}
+            >
+                Select all
+            </Button>
+        {/if}
+    </div>
 
     {#if filteredTranscripts.length > 0}
         <Stack gap={5}>
             {#each filteredTranscripts as transcript (transcript.name)}
-                <TranscriptCard {transcript} />
+                <TranscriptCard
+                    {transcript}
+                    checked={checkedTranscriptsMap[transcript.name]}
+                    onCheckChange={(value) =>
+                        updateTranscriptSelection(transcript.name, value)}
+                />
             {/each}
         </Stack>
     {/if}
@@ -77,7 +157,11 @@
         gap: 1rem;
     }
 
-    :global(.select-all-button) {
+    .select-buttons {
+        display: flex;
+    }
+
+    :global(.select-button) {
         width: fit-content;
     }
 </style>
