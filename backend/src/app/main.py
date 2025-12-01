@@ -8,6 +8,8 @@ from mellea.backends.litellm import LiteLLMBackend
 from dotenv import load_dotenv
 import logging
 import os
+import sqlite3
+from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel
 
@@ -27,12 +29,6 @@ logging.basicConfig(level=logging.WARNING, format='%(message)s')
 logging.getLogger("qux360").setLevel(logging.INFO)
 
 
-ROOT_DIR = Path.cwd()
-data_dir = ROOT_DIR.joinpath("examples/data")
-file = data_dir.joinpath("interview_A.xlsx")
-export_file = data_dir.joinpath("interview_A_exported.xlsx")
-config_file = ROOT_DIR.joinpath("examples/config.json")
-
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
 i: Interview
@@ -45,29 +41,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "./app/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+DB_PATH = Path.cwd().joinpath("uploads.db")
+
+# Initialize a very small SQLite DB to store uploaded files as blobs
+def init_db(path: Path):
+    conn = sqlite3.connect(path)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS uploads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            content_type TEXT,
+            content BLOB NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    return conn
+
+
+db_conn = init_db(DB_PATH)
+
+def save_file_to_db(conn: sqlite3.Connection, filename: str, content_type: str, content: bytes) -> int:
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO uploads (filename, content_type, content, created_at) VALUES (?, ?, ?, ?)",
+        (filename, content_type, content, datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_file_from_db(conn: sqlite3.Connection, file_id: int):
+    cur = conn.cursor()
+    cur.execute("SELECT filename, content_type, content FROM uploads WHERE id = ?", (file_id,))
+    row = cur.fetchone()
+    if row:
+        return {"filename": row[0], "content_type": row[1], "content": row[2]}
+    return None
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
-    if file.filename.endswith(".csv"):
-        suffix = ".csv"
-    elif file.filename.endswith(".xlsx"):
-        suffix = ".xlsx"
-    else:
-        suffix= ".docx"
-
-    """Save uploaded file and return the full path."""
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
     try:
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
-
-        print(f"✅ File saved at: {file_path}")
-        return {"file_path": file_path}
-
+        content = await file.read()
+        file_id = save_file_to_db(db_conn, file.filename, file.content_type or "", content)
+        print(f"✅ File saved in DB with id: {file_id}")
+        return {"file_id": file_id}
     except Exception as e:
         print(f"❌ Upload failed: {e}")
         return {"error": str(e)}
@@ -76,26 +98,51 @@ async def upload_file(file: UploadFile = File(...)):
 class FilePathRequest(BaseModel):
     path: str
 
-@app.post("/extract_speakers")
-async def extract_speakers(request: FilePathRequest):
-    file_path = request.path
-    print(f"🔍 Extracting speakers from: {file_path}")
+
+class FileIdRequest(BaseModel):
+    id: int
+
+@app.post("/identify_participant")
+async def identify_participant(request: FileIdRequest):
+    file_id = request.id
+    print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"speakers": [], "participant": "", "error": "file not found"}
+
+    # write to a temporary file for qux360's Interview which expects a path
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
 
     try:
-        i = Interview(file_path)
+        i = Interview(tmp_path)
         speakers = i.get_speakers()
         interiewee = i.identify_interviewee(m).result
-        return {"message": "Speakers found", "speakers": speakers, "interviewee": interiewee}
+        return {"message": "Speakers found (participant identified)", "speakers": speakers, "participant": interiewee}
     except Exception as e:
         print(f"❌ qux360 failed: {e}")
-        return {"speakers": [], "interviewee": "", "error": str(e)}
+        return {"speakers": [], "participant": "", "error": str(e)}
 
 
-@app.post("/execute")
-async def execute_action(choice: str = Form(...)):
-    """Execute the right function based on user selection"""
-    if choice == "A":  # adapt to your logic
-        output = qux360.yyyyyy()
-    else:
-        output = qux360.zzzzz()
-    return {"result": output}
+@app.post("/anonymization_map")
+async def get_speakers_anonymization_map(request: FileIdRequest):
+    file_id = request.id
+    print(f"🔍 Building anonymization map for file id: {file_id}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"anonymization_map": {}, "error": "file not found"}
+
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    try:
+        i = Interview(tmp_path)
+        map = i.anonymize_speakers_generic()
+        return {"message": "Anonymization map", "anonymization_map": map}
+    except Exception as e:
+        print(f"❌ qux360 failed: {e}")
+        return {"anonymization_map": {}, "error": str(e)}
