@@ -11,8 +11,8 @@
         isModalOpen = false;
     };
 
-    const handleRenameButtonClick = (): void => {
-        studiesStore.update({
+    const handleRenameButtonClick = async (): Promise<void> => {
+        await studiesStore.update({
             ...study,
             name: studyName,
         });
@@ -27,7 +27,9 @@
     primaryButtonText="Rename"
     primaryButtonDisabled={studyName.trim() === ""}
     on:click:button--secondary={handleCancelButtonClick}
-    on:click:button--primary={handleRenameButtonClick}
+    on:click:button--primary={async () => {
+        await handleRenameButtonClick();
+    }}
 >
     <TextInput bind:value={studyName} labelText="Study name" placeholder="" />
 </Modal>

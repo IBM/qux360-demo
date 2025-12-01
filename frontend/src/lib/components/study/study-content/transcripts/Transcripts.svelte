@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type { SerializableTranscriptFileI } from "$lib/models";
+    import type { TranscriptFileI } from "$lib/models";
     import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
     import { TranscriptCard } from ".";
 
-    export let transcriptFiles: SerializableTranscriptFileI[];
+    export let transcriptFiles: TranscriptFileI[];
 
-    let filteredTranscripts: SerializableTranscriptFileI[] = [];
+    let filteredTranscripts: TranscriptFileI[] = [];
     let searchTranscriptValue: string = "";
 
     let checkedTranscriptsMap: Record<string, boolean> = {};
@@ -15,7 +15,7 @@
     let mixedSelection: boolean = false;
 
     $: filteredTranscripts = transcriptFiles.filter(
-        (transcript: SerializableTranscriptFileI) =>
+        (transcript: TranscriptFileI) =>
             transcript.name
                 .toLowerCase()
                 .includes(searchTranscriptValue.toLowerCase()),
@@ -24,13 +24,13 @@
     $: allSelected =
         filteredTranscripts.length > 0 &&
         filteredTranscripts.every(
-            (t: SerializableTranscriptFileI) => checkedTranscriptsMap[t.name],
+            (t: TranscriptFileI) => checkedTranscriptsMap[t.name],
         );
 
     $: noneSelected =
         filteredTranscripts.length > 0 &&
         filteredTranscripts.every(
-            (t: SerializableTranscriptFileI) => !checkedTranscriptsMap[t.name],
+            (t: TranscriptFileI) => !checkedTranscriptsMap[t.name],
         );
 
     $: mixedSelection = !allSelected && !noneSelected;
@@ -41,15 +41,13 @@
 
     const handleSelectAll = (): void => {
         filteredTranscripts.forEach(
-            (t: SerializableTranscriptFileI) =>
-                (checkedTranscriptsMap[t.name] = true),
+            (t: TranscriptFileI) => (checkedTranscriptsMap[t.name] = true),
         );
     };
 
     const handleDeselectAll = (): void => {
         filteredTranscripts.forEach(
-            (t: SerializableTranscriptFileI) =>
-                (checkedTranscriptsMap[t.name] = false),
+            (t: TranscriptFileI) => (checkedTranscriptsMap[t.name] = false),
         );
     };
 

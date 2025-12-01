@@ -2,8 +2,8 @@
     import {
         UploadedTranscriptFileStatus,
         type ProgressStepI,
-        type SerializableTranscriptFileI,
         type StudyI,
+        type TranscriptFileI,
         type UploadedTranscriptFileI,
     } from "$lib/models";
     import { utilsService } from "$lib/services";
@@ -187,18 +187,19 @@
             )
             .map((uploadedTranscriptFile) => uploadedTranscriptFile.file);
 
-        const serializedFiles: SerializableTranscriptFileI[] =
-            await Promise.all(
-                successfulFiles.map(utilsService.fileToSerializable),
-            );
+        const transcriptFiles: TranscriptFileI[] = successfulFiles.map(
+            (file: File) => {
+                return utilsService.getTranscriptFile(file);
+            },
+        );
 
         const newStudy: StudyI = {
             id: utilsService.getUniqueId(),
             name: studyName,
             description: studyDescription,
-            transcriptFiles: serializedFiles,
+            transcriptFiles: transcriptFiles,
         };
-        studiesStore.add(newStudy);
+        await studiesStore.add(newStudy);
 
         steps[currentStepIndex].isComplete = true;
         isCreatingStudy = false;

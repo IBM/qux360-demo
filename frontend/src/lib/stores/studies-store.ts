@@ -4,18 +4,18 @@ import { writable } from "svelte/store";
 
 const createStudiesStore = () => {
     const { subscribe, set, update } = writable<StudyI[]>(
-        studiesCacheService.getAll(),
+        studiesCacheService.getAllStudies(),
     );
 
     return {
         subscribe,
-        refresh: () => set(studiesCacheService.getAll()),
-        add: (study: StudyI) => {
-            studiesCacheService.add(study);
+        refresh: () => set(studiesCacheService.getAllStudies()),
+        add: async (study: StudyI): Promise<void> => {
+            await studiesCacheService.add(study);
             update((studies: StudyI[]) => [...studies, study]);
         },
-        update: (updatedStudy: StudyI) => {
-            studiesCacheService.update(updatedStudy);
+        update: async (updatedStudy: StudyI): Promise<void> => {
+            await studiesCacheService.update(updatedStudy);
             update((studies: StudyI[]) =>
                 studies.map((s: StudyI) =>
                     s.id === updatedStudy.id ? updatedStudy : s,

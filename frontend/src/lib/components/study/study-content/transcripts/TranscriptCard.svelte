@@ -1,8 +1,8 @@
 <script lang="ts">
-    import type { SerializableTranscriptFileI } from "$lib/models";
+    import type { TranscriptFileI } from "$lib/models";
     import { Checkbox, OverflowMenu } from "carbon-components-svelte";
 
-    export let transcript: SerializableTranscriptFileI;
+    export let transcript: TranscriptFileI;
     export let checked: boolean = false;
     export let onCheckChange: (value: boolean) => void = () => {};
 
@@ -25,10 +25,21 @@
         <Checkbox {checked} on:change={onCheckboxChange} />
     </div>
     <div
-        class="transcript-details-container"
+        class="transcript-details-external-container"
         on:click={handleTranscriptCardClick}
     >
-        <span class="transcript-name">{transcript.name}</span>
+        <div class="transcript-details-internal-container">
+            <span class="transcript-name">{transcript.name}</span>
+            <div class="transcript-status-container">
+                <svelte:component
+                    this={transcript.status.icon}
+                    style="fill: {transcript.status.iconColor};"
+                />
+                <span class="transcript-status-text">
+                    {transcript.status.status}
+                </span>
+            </div>
+        </div>
     </div>
 
     <OverflowMenu class="transcript-card-overflow-menu" flipped size="xl"
@@ -78,7 +89,7 @@
         height: 1.5rem;
     }
 
-    .transcript-details-container {
+    .transcript-details-external-container {
         display: flex;
         align-items: center;
         flex: 1;
@@ -86,9 +97,26 @@
         gap: 0.875rem;
     }
 
+    .transcript-details-internal-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
     .transcript-name {
         @include type.type-style("body-compact-02");
         font-weight: 700;
+    }
+
+    .transcript-status-container {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .transcript-status-text {
+        @include type.type-style("body-compact-02");
+        color: var(--cds-text-secondary);
     }
 
     .separator {
