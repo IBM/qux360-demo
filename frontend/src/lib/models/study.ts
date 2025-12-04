@@ -13,6 +13,21 @@ export interface UploadedTranscriptFileI {
     message?: string;
 }
 
+export interface UploadTranscriptFileSuccessI {
+    fileId: number;
+    filename: string;
+}
+
+export interface UploadTranscriptFileErrorI {
+    error: string;
+    filename: string;
+}
+
+export interface UploadTranscriptFileResultI {
+    successes: UploadTranscriptFileSuccessI[];
+    errors: UploadTranscriptFileErrorI[];
+}
+
 export enum TranscriptState {
     Running = "running",
     Ready = "ready",
@@ -28,6 +43,7 @@ export interface TranscriptStatusI {
 }
 
 export interface TranscriptFileI {
+    id?: number;
     name: string;
     file: File;
     size: number;
@@ -58,6 +74,7 @@ export interface SerializableTranscriptStatusI {
 }
 
 export interface SerializableTranscriptFileI {
+    id?: number;
     name: string;
     file: string;
     size: number;

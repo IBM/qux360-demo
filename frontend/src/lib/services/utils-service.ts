@@ -58,28 +58,13 @@ class UtilsService {
         };
     }
 
-    public async getSerializableTranscriptFile(
-        file: File,
-    ): Promise<SerializableTranscriptFileI> {
-        const base64: string = await this.fileToBase64(file);
-
-        return {
-            name: file.name,
-            file: base64,
-            size: file.size,
-            type: file.type,
-            status: this.getSerializableTranscriptStatus(
-                RUNNING_PARTICIPANT_IDENTIFICATION_STATUS,
-            ),
-        };
-    }
-
     public async convertToSerializableTranscriptFile(
         transcriptFile: TranscriptFileI,
     ): Promise<SerializableTranscriptFileI> {
         const base64: string = await this.fileToBase64(transcriptFile.file);
 
         return {
+            id: transcriptFile.id,
             name: transcriptFile.name,
             file: base64,
             size: transcriptFile.size,
@@ -144,6 +129,7 @@ class UtilsService {
         });
 
         return {
+            id: serializableTranscriptFile.id,
             name: serializableTranscriptFile.name,
             file: file,
             size: serializableTranscriptFile.size,
