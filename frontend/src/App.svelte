@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { LoadingComponent } from "$lib/common";
     import { Home, Page, Study } from "$lib/components";
-    import { selectedStudyStore } from "$lib/stores";
+    import { loadingRequestStore, selectedStudyStore } from "$lib/stores";
     import { Route, Router } from "svelte-routing";
 </script>
 
@@ -19,6 +20,8 @@
         </Page>
     </Route>
 </Router>
+
+<LoadingComponent active={$loadingRequestStore} />
 
 <style lang="scss">
     .external-page-content-container {

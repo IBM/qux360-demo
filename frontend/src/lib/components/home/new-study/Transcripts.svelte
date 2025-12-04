@@ -7,7 +7,7 @@
         type UploadedTranscriptFileI,
     } from "$lib/models";
     import { utilsService } from "$lib/services";
-    import { studiesStore } from "$lib/stores";
+    import { loadingRequestStore, studiesStore } from "$lib/stores";
     import { Button, FileUploaderItem, Link } from "carbon-components-svelte";
     import { Upload } from "carbon-icons-svelte";
 
@@ -199,7 +199,9 @@
             description: studyDescription,
             transcriptFiles: transcriptFiles,
         };
+        loadingRequestStore.startLoadingRequest();
         await studiesStore.add(newStudy);
+        loadingRequestStore.stopLoadingRequest();
 
         steps[currentStepIndex].isComplete = true;
         isCreatingStudy = false;
