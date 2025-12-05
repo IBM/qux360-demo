@@ -33,12 +33,16 @@
         name="ai-settings"
     >
         <RadioButton
-            labelText="Strictest: Worst status wins"
+            labelText="Strictest: Show worst status"
             value="strictest"
         />
         <RadioButton
-            labelText="Consensus: All validations must agree on high quality, otherwise returns uncertain quality "
+            labelText="Consensus: All validations must agree on high quality, otherwise show uncertain quality"
             value="consensus"
+        />
+        <RadioButton
+            labelText="Majority: Show most frequently occurring status"
+            value="majority"
         />
     </RadioButtonGroup>
 </Modal>
