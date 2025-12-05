@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { StudyI } from "$lib/models";
+    import { StudyState, type StudyI } from "$lib/models";
     import { studiesStore } from "$lib/stores";
     import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
     import { Add } from "carbon-icons-svelte";
@@ -10,9 +10,19 @@
     let filteredStudies: StudyI[] = [];
     let searchStudyValue: string = "";
 
-    $: filteredStudies = $studiesStore.filter((study: StudyI) =>
-        study.name.toLowerCase().includes(searchStudyValue.toLowerCase()),
-    );
+    let filterNeedsReview: boolean = false;
+
+    $: filteredStudies = $studiesStore.filter((study: StudyI) => {
+        const matchesSearch: boolean = study.name
+            .toLowerCase()
+            .includes(searchStudyValue.toLowerCase());
+
+        const matchesFilter: boolean =
+            !filterNeedsReview ||
+            (filterNeedsReview && study.status.state === StudyState.Review);
+
+        return matchesSearch && matchesFilter;
+    });
 
     const handleNewStudyButtonClick = (): void => {
         isCreatingStudy = true;
@@ -30,7 +40,11 @@
             />
             <div class="review-required-checkbox-container">
                 <span class="bx--label">Filter</span>
-                <Checkbox class="checkbox" labelText="Review required" />
+                <Checkbox
+                    class="checkbox"
+                    labelText="Review required"
+                    bind:checked={filterNeedsReview}
+                />
             </div>
         </Stack>
         <Button kind="primary" icon={Add} on:click={handleNewStudyButtonClick}>

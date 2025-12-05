@@ -24,12 +24,11 @@
                 .includes(searchTranscriptValue.toLowerCase());
 
             const matchesFilter: boolean =
+                (!filterNeedsReview && !filterReady) ||
                 (filterNeedsReview &&
                     transcript.status.state === TranscriptState.Review) ||
                 (filterReady &&
-                    transcript.status.state === TranscriptState.Ready) ||
-                (!filterNeedsReview && !filterReady);
-
+                    transcript.status.state === TranscriptState.Ready);
             return matchesSearch && matchesFilter;
         },
     );
