@@ -146,7 +146,7 @@ export const READY_STUDY_STATUS: StudyStatusI = {
     iconColor: ICON_DEFAULT_COLOR,
     state: StudyState.Ready,
     status: "Ready",
-    description: `No transcripts have '${NEEDS_REVIEW_STUDY_STATUS.status}' statuses`,
+    description: "All transcripts ready.",
 };
 
 export const ERROR_STUDY_STATUS: StudyStatusI = {

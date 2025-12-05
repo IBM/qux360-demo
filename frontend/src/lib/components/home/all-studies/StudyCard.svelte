@@ -1,7 +1,11 @@
 <script lang="ts">
     import type { StudyI } from "$lib/models";
     import { selectedStudyIdStore } from "$lib/stores";
-    import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
+    import {
+        OverflowMenu,
+        OverflowMenuItem,
+        TooltipDefinition,
+    } from "carbon-components-svelte";
     import { TrashCan } from "carbon-icons-svelte";
     import { AISettingsModal, DeleteStudyModal, RenameStudyModal } from ".";
 
@@ -36,15 +40,24 @@
             {study.transcriptFiles.length} interviews
         </span>
         <div class="separator"></div>
-        <div class="study-status-container">
-            <svelte:component
-                this={study.status.icon}
-                style="fill: {study.status.iconColor};"
-            />
-            <span class="study-status-text">
-                {study.status.status}
+        <TooltipDefinition
+            class="study-status-tooltip"
+            direction="bottom"
+            align="start"
+        >
+            <div class="study-status-container">
+                <svelte:component
+                    this={study.status.icon}
+                    style="fill: {study.status.iconColor};"
+                />
+                <span class="study-status-text">
+                    {study.status.status}
+                </span>
+            </div>
+            <span slot="tooltip">
+                {study.status.description}
             </span>
-        </div>
+        </TooltipDefinition>
     </div>
 
     <OverflowMenu class="study-card-overflow-menu" flipped size="xl">
@@ -162,6 +175,10 @@
         display: flex;
         justify-content: space-between;
         width: 100%;
+    }
+
+    :global(.study-status-tooltip .bx--tooltip--a11y) {
+        border-bottom: unset;
     }
 
     :global(.study-card-overflow-menu) {
