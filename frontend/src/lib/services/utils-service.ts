@@ -1,13 +1,17 @@
 import {
-    RUNNING_PARTICIPANT_IDENTIFICATION_STATUS,
+    RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
+    SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP,
     SERIALIZABLE_TRANSCRIPT_STATUS_TO_ICON_MAP,
 } from "$lib/common";
 import type {
     SerializableStudyI,
+    SerializableStudyStatusI,
+    SerializableStudyStatusIcon,
     SerializableTranscriptFileI,
     SerializableTranscriptStatusI,
     SerializableTranscriptStatusIcon,
     StudyI,
+    StudyStatusI,
     TranscriptFileI,
     TranscriptStatusI,
 } from "$lib/models";
@@ -31,7 +35,7 @@ class UtilsService {
         return base64;
     }
 
-    private getSerializableIcon(
+    private getSerializableTranscriptIcon(
         icon: Component<CarbonIconProps>,
     ): SerializableTranscriptStatusIcon | undefined {
         return Object.entries(SERIALIZABLE_TRANSCRIPT_STATUS_TO_ICON_MAP).find(
@@ -43,7 +47,7 @@ class UtilsService {
         status: TranscriptStatusI,
     ): SerializableTranscriptStatusI {
         const serializableIcon: SerializableTranscriptStatusIcon | undefined =
-            this.getSerializableIcon(status.icon);
+            this.getSerializableTranscriptIcon(status.icon);
 
         if (!serializableIcon) {
             throw new Error("Icon not found");
@@ -79,7 +83,34 @@ class UtilsService {
             file: file,
             size: file.size,
             type: file.type,
-            status: RUNNING_PARTICIPANT_IDENTIFICATION_STATUS,
+            status: RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
+        };
+    }
+
+    private getSerializableStudyIcon(
+        icon: Component<CarbonIconProps>,
+    ): SerializableStudyStatusIcon | undefined {
+        return Object.entries(SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP).find(
+            ([, value]) => value === icon,
+        )?.[0] as SerializableStudyStatusIcon;
+    }
+
+    private getSerializableStudyStatus(
+        status: StudyStatusI,
+    ): SerializableStudyStatusI {
+        const serializableIcon: SerializableStudyStatusIcon | undefined =
+            this.getSerializableStudyIcon(status.icon);
+
+        if (!serializableIcon) {
+            throw new Error("Icon not found");
+        }
+
+        return {
+            icon: serializableIcon,
+            iconColor: status.iconColor,
+            state: status.state,
+            status: status.status,
+            description: status.description,
         };
     }
 
@@ -100,6 +131,7 @@ class UtilsService {
             name: study.name,
             description: study.description,
             transcriptFiles: serializedTranscriptFiles,
+            status: this.getSerializableStudyStatus(study.status),
         };
     }
 
@@ -138,6 +170,20 @@ class UtilsService {
         };
     }
 
+    private getStudyStatus(
+        serializableStatus: SerializableStudyStatusI,
+    ): StudyStatusI {
+        return {
+            icon: SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP[
+                serializableStatus.icon
+            ],
+            iconColor: serializableStatus.iconColor,
+            state: serializableStatus.state,
+            status: serializableStatus.status,
+            description: serializableStatus.description,
+        };
+    }
+
     public convertToStudy(serializableStudy: SerializableStudyI): StudyI {
         const transcriptFiles: TranscriptFileI[] =
             serializableStudy.transcriptFiles.map(
@@ -153,6 +199,7 @@ class UtilsService {
             name: serializableStudy.name,
             description: serializableStudy.description,
             transcriptFiles: transcriptFiles,
+            status: this.getStudyStatus(serializableStudy.status),
         };
     }
 }

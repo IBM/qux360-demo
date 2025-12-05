@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { READY_STUDY_STATUS } from "$lib/common";
     import {
         UploadedTranscriptFileStatus,
         type ProgressStepI,
@@ -198,6 +199,7 @@
             name: studyName,
             description: studyDescription,
             transcriptFiles: transcriptFiles,
+            status: READY_STUDY_STATUS,
         };
         loadingRequestStore.startLoadingRequest();
         await studiesStore.add(newStudy);

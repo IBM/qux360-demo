@@ -35,6 +35,16 @@
         <span class="study-detail-text">
             {study.transcriptFiles.length} interviews
         </span>
+        <div class="separator"></div>
+        <div class="study-status-container">
+            <svelte:component
+                this={study.status.icon}
+                style="fill: {study.status.iconColor};"
+            />
+            <span class="study-status-text">
+                {study.status.status}
+            </span>
+        </div>
     </div>
 
     <OverflowMenu class="study-card-overflow-menu" flipped size="xl">
@@ -136,6 +146,16 @@
         height: 4px;
         background-color: #8d8d8d;
         border-radius: 50%;
+    }
+
+    .study-status-container {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .study-status-text {
+        @include type.type-style("body-compact-02");
     }
 
     .delete-item-container {
