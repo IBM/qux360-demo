@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { TranscriptContent } from "$lib/components";
+    import { selectedTranscriptStore } from "$lib/stores";
     import { AllStudiesPanel, StudyContent } from ".";
 </script>
 
@@ -8,7 +10,11 @@
     </div>
     <div class="divider"></div>
     <div class="study-internal-container">
-        <StudyContent />
+        {#if $selectedTranscriptStore}
+            <TranscriptContent />
+        {:else}
+            <StudyContent />
+        {/if}
     </div>
 </div>
 

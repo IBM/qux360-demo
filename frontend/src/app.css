@@ -28,6 +28,10 @@ html, body {
   width: 350px;
 }
 
+.back-button {
+  padding: 3px !important;
+}
+
 .checkbox {
   flex: unset;
   margin: 0 !important;

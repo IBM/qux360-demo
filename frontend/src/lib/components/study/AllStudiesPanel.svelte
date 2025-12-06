@@ -1,11 +1,22 @@
 <script lang="ts">
-    import type { StudyI } from "$lib/models";
-    import { selectedStudyIdStore, studiesStore } from "$lib/stores";
+    import type { StudyI, TranscriptFileI } from "$lib/models";
+    import {
+        selectedStudyIdStore,
+        selectedTranscriptFileIdStore,
+        studiesStore,
+    } from "$lib/stores";
     import { Stack, truncate } from "carbon-components-svelte";
     import { ChevronDown, ChevronUp } from "carbon-icons-svelte";
 
     const handleStudyItemClick = (study: StudyI): void => {
         selectedStudyIdStore.set(study.id);
+        selectedTranscriptFileIdStore.set(undefined);
+    };
+
+    const handleTranscriptFileItemClick = (
+        transcriptFile: TranscriptFileI,
+    ): void => {
+        selectedTranscriptFileIdStore.set(transcriptFile.id);
     };
 </script>
 
@@ -39,7 +50,12 @@
         {#if study.id === $selectedStudyIdStore}
             <Stack gap={3}>
                 {#each study.transcriptFiles as transcriptFile (transcriptFile.name)}
-                    <div class="transcript-file-item-container">
+                    <div
+                        class="transcript-file-item-container"
+                        on:click={() => {
+                            handleTranscriptFileItemClick(transcriptFile);
+                        }}
+                    >
                         <span class="transcript-file-name">
                             {transcriptFile.name}
                         </span>

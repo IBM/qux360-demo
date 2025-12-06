@@ -1,23 +1,18 @@
 <script lang="ts">
+    import { StudyContentTabID, Tabs } from "$lib/common";
     import type { TabI } from "$lib/models";
     import { selectedStudyIdStore, selectedStudyStore } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft, Settings } from "carbon-icons-svelte";
     import { Transcripts } from ".";
 
-    enum TabID {
-        Transcripts = "transcripts",
-        AllTopics = "all-topics",
-        Themes = "themes",
-    }
-
     const tabs: TabI[] = [
-        { id: TabID.Transcripts, label: "Transcripts" },
-        { id: TabID.AllTopics, label: "All topics" },
-        { id: TabID.Themes, label: "Themes" },
+        { id: StudyContentTabID.Transcripts, label: "Transcripts" },
+        { id: StudyContentTabID.AllTopics, label: "All topics" },
+        { id: StudyContentTabID.Themes, label: "Themes" },
     ];
 
-    let activeTab: string = TabID.Transcripts;
+    let activeTab: string = StudyContentTabID.Transcripts;
 
     const handleBackButtonClick = (): void => {
         selectedStudyIdStore.set(null);
@@ -25,10 +20,6 @@
 
     const handleAISettingsButtonClick = (): void => {
         // TODO: Add functionality
-    };
-
-    const selectTab = (id: string): void => {
-        activeTab = id;
     };
 </script>
 
@@ -53,27 +44,10 @@
             AI settings
         </Button>
     </div>
-    <div class="tabs-container">
-        <ul class="bx--tabs__nav bx--tabs__nav--hidden">
-            {#each tabs as tab (tab.id)}
-                <li class="bx--tabs__nav-item">
-                    <a
-                        role="tab"
-                        tabindex="0"
-                        aria-selected={activeTab === tab.id}
-                        aria-disabled="false"
-                        class="bx--tabs__nav-link {activeTab === tab.id
-                            ? 'bx--tabs__nav-item--selected'
-                            : ''}"
-                        on:click={() => selectTab(tab.id)}
-                    >
-                        {tab.label}
-                    </a>
-                </li>
-            {/each}
-        </ul>
-    </div>
-    {#if activeTab === TabID.Transcripts}
+
+    <Tabs {tabs} bind:activeTab />
+
+    {#if activeTab === StudyContentTabID.Transcripts}
         <Transcripts transcriptFiles={$selectedStudyStore.transcriptFiles} />
     {/if}
 {/if}
@@ -97,32 +71,5 @@
     .study-content-header {
         @include type.type-style("heading-04");
         line-height: 2.25rem;
-    }
-
-    .tabs-container {
-        position: relative;
-        height: calc(2.5rem - 0.5px);
-        border-bottom: 1px solid var(--cds-border-subtle-selected);
-    }
-
-    .bx--tabs__nav-link {
-        width: auto;
-        border-color: var(--cds-border-subtle-selected);
-    }
-
-    .bx--tabs__nav-link:active,
-    .bx--tabs__nav-link:focus {
-        width: auto;
-        outline: unset;
-        outline-offset: unset;
-        border-bottom: 2px solid var(--cds-interactive-04);
-    }
-
-    .bx--tabs__nav-item--selected {
-        border-bottom: 2px solid var(--cds-interactive-04);
-    }
-
-    :global(.back-button) {
-        padding: 3px !important;
     }
 </style>

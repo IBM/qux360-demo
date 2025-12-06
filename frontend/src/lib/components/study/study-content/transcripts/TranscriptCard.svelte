@@ -1,12 +1,15 @@
 <script lang="ts">
     import type { TranscriptFileI } from "$lib/models";
+    import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Checkbox, OverflowMenu } from "carbon-components-svelte";
 
     export let transcript: TranscriptFileI;
     export let checked: boolean = false;
     export let onCheckChange: (value: boolean) => void = () => {};
 
-    const handleTranscriptCardClick = (): void => {};
+    const handleTranscriptCardClick = (): void => {
+        selectedTranscriptFileIdStore.set(transcript.id);
+    };
 
     const onCheckboxChange = (event: Event): void => {
         const value: boolean = (event.target as HTMLInputElement).checked;

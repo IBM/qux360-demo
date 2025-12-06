@@ -162,3 +162,14 @@ export const STUDY_STATUSES: StudyStatusI[] = [
     READY_STUDY_STATUS,
     ERROR_STUDY_STATUS,
 ];
+
+export enum TranscriptContentTabID {
+    TranscriptInformation = "transcriptInformation",
+    Analysis = "analysis",
+}
+
+export enum StudyContentTabID {
+    Transcripts = "transcripts",
+    AllTopics = "all-topics",
+    Themes = "themes",
+}
