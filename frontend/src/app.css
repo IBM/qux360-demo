@@ -24,7 +24,7 @@ html, body {
   width: 160px;
 }
 
-.bx--search {
+.bx--search .search-fixed-width {
   width: 350px;
 }
 
@@ -34,6 +34,7 @@ html, body {
 
 .checkbox {
   flex: unset;
+  width: max-content;
   margin: 0 !important;
 }
 

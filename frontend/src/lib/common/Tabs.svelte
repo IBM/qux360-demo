@@ -33,7 +33,7 @@
 <style lang="scss">
     .tabs-container {
         position: relative;
-        height: calc(2.5rem - 0.5px);
+        min-height: calc(2.5rem - 0.5px);
         border-bottom: 1px solid var(--cds-border-subtle-selected);
     }
 

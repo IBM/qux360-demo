@@ -35,6 +35,7 @@
     <div class="action-bar">
         <Stack gap={5} orientation="horizontal">
             <Search
+                class="search-fixed-width"
                 bind:value={searchStudyValue}
                 placeholder="Search for a study"
             />
