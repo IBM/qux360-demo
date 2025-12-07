@@ -7,6 +7,7 @@
     } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft } from "carbon-icons-svelte";
+    import { TranscriptInformation } from ".";
 
     const tabs: TabI[] = [
         {
@@ -39,7 +40,12 @@
             </h4>
         </div>
     </div>
+
     <Tabs {tabs} bind:activeTab />
+
+    {#if activeTab === TranscriptContentTabID.TranscriptInformation}
+        <TranscriptInformation />
+    {/if}
 {/if}
 
 <style lang="scss">
