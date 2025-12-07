@@ -1,8 +1,24 @@
 <script lang="ts">
     import { LoadingComponent } from "$lib/common";
     import { Home, Page, Study } from "$lib/components";
-    import { loadingRequestStore, selectedStudyStore } from "$lib/stores";
+    import { type StudyI } from "$lib/models";
+    import {
+        loadingRequestStore,
+        selectedStudyStore,
+        studiesStore,
+    } from "$lib/stores";
+    import { onMount } from "svelte";
     import { Route, Router } from "svelte-routing";
+
+    onMount(() => {
+        studiesStore.subscribe((studies: StudyI[]) => {
+            studies.forEach(async (study: StudyI) => {
+                studiesStore.updateTranscriptFilesData(study);
+                // const a = await utilsService.convertToSerializableStudy(study);
+                // console.log(structuredClone(a));
+            });
+        });
+    });
 </script>
 
 <Router>

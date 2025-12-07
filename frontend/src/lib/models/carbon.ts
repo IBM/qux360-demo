@@ -1,5 +1,11 @@
 import type { Component } from "svelte";
 
+export interface DropdownItem {
+    id: any;
+    text: string;
+    disabled?: boolean;
+}
+
 export interface NotificationI {
     id: string;
     kind:

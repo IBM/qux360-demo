@@ -41,6 +41,14 @@ export const SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP: Record<
     [SerializableStudyStatusIcon.WarningFilled]: WarningFilled,
 };
 
+export const READY_TO_IDENTIFY_PARTICIPANTS: TranscriptStatusI = {
+    icon: CheckmarkOutline,
+    iconColor: ICON_DEFAULT_COLOR,
+    state: TranscriptState.Ready,
+    status: "Ready to identify participants",
+    description: "",
+};
+
 export const RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS: TranscriptStatusI =
     {
         icon: InProgress,
@@ -122,6 +130,7 @@ export const READY_TRANSCRIPT_STATUS: TranscriptStatusI = {
 };
 
 export const TRANSCRIPT_STATUSES: TranscriptStatusI[] = [
+    READY_TO_IDENTIFY_PARTICIPANTS,
     RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
     PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
     READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,

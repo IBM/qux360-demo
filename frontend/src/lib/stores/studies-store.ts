@@ -1,7 +1,15 @@
-import type {
-    StudyI,
-    TranscriptFileI,
-    UploadTranscriptFileSuccessI,
+import {
+    PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
+    READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
+    READY_TO_IDENTIFY_PARTICIPANTS,
+    RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
+} from "$lib/common";
+import {
+    ValidationStatus,
+    type IdentifyParticipantResponse,
+    type StudyI,
+    type TranscriptFileI,
+    type UploadTranscriptFileSuccessI,
 } from "$lib/models";
 import { apiService, studiesCacheService } from "$lib/services";
 import { writable } from "svelte/store";
@@ -15,6 +23,55 @@ const createStudiesStore = () => {
     return {
         subscribe,
         refresh: () => set(studiesCacheService.getAllStudies()),
+        updateTranscriptFilesData: async (study: StudyI) => {
+            for (let i = 0; i < study.transcriptFiles.length; i++) {
+                const transcriptFile: TranscriptFileI =
+                    study.transcriptFiles[i];
+
+                if (transcriptFile.status === READY_TO_IDENTIFY_PARTICIPANTS) {
+                    transcriptFile.status =
+                        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS;
+
+                    const data: IdentifyParticipantResponse =
+                        await apiService.identifyParticipant(
+                            transcriptFile.id!,
+                        );
+
+                    if (data.validation) {
+                        if (data.validation.status !== ValidationStatus.Ok) {
+                            transcriptFile.status =
+                                PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS;
+                        } else if (
+                            data.validation.status === ValidationStatus.Ok
+                        ) {
+                            transcriptFile.status =
+                                READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS;
+                        }
+                    } else {
+                        transcriptFile.status =
+                            PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS;
+                    }
+
+                    const updatedTranscriptFile: TranscriptFileI = {
+                        ...transcriptFile,
+                        participant: data.participant,
+                        speakers: data.speakers,
+                        validation: data.validation,
+                    };
+
+                    study.transcriptFiles[i] = updatedTranscriptFile;
+
+                    await studiesCacheService.update(study);
+                    update((studies: StudyI[]) =>
+                        studies.map((s: StudyI) =>
+                            s.id === study.id ? study : s,
+                        ),
+                    );
+
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+            }
+        },
         add: async (study: StudyI): Promise<void> => {
             const { successes, errors } = await apiService.uploadFiles(
                 study.transcriptFiles,
@@ -49,6 +106,7 @@ const createStudiesStore = () => {
 
             await studiesCacheService.add(study);
             update((studies: StudyI[]) => [...studies, study]);
+
             notificationsStore.addNotification({
                 kind: "success",
                 title: "Study added",

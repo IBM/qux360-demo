@@ -49,6 +49,9 @@ export interface TranscriptFileI {
     size: number;
     type: string;
     status: TranscriptStatusI;
+    speakers: string[];
+    participant: string;
+    validation: IntervieweeValidation | null;
 }
 
 export enum SerializableTranscriptStatusIcon {
@@ -73,6 +76,9 @@ export interface SerializableTranscriptFileI {
     size: number;
     type: string;
     status: SerializableTranscriptStatusI;
+    speakers: string[];
+    participant: string;
+    validation: IntervieweeValidation | null;
 }
 
 export enum StudyState {
@@ -117,4 +123,34 @@ export interface SerializableStudyI {
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
     status: SerializableStudyStatusI;
+}
+
+export enum ValidationStatus {
+    Ok = "ok",
+    Check = "check",
+    Iffy = "iffy",
+}
+
+export interface IntervieweeValidation {
+    status: ValidationStatus;
+    explanation: string;
+    errors: any[];
+    method: string | null;
+    metadata: IntervieweeMetadata | null;
+    checks: IntervieweeValidation[];
+    informational: boolean;
+}
+
+export interface IntervieweeMetadata {
+    word_ratio?: number;
+    prediction: string;
+    agreement?: boolean;
+}
+
+export interface IdentifyParticipantResponse {
+    message?: string;
+    error?: string;
+    speakers: string[];
+    participant: string;
+    validation: IntervieweeValidation | null;
 }

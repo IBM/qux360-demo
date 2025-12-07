@@ -31,7 +31,6 @@ logging.getLogger("qux360").setLevel(logging.INFO)
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
-i: Interview
 # Allow frontend (Svelte) to access backend
 app.add_middleware(
     CORSMiddleware,
@@ -108,7 +107,12 @@ async def identify_participant(request: FileIdRequest):
     print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
-        return {"speakers": [], "participant": "", "error": "file not found"}
+        return {
+            "error": "file not found",
+            "speakers": [],
+            "participant": "",
+            "validation": None,
+        }
 
     # write to a temporary file for qux360's Interview which expects a path
     suffix = Path(row["filename"]).suffix or ".xlsx"
@@ -118,9 +122,15 @@ async def identify_participant(request: FileIdRequest):
 
     try:
         i = Interview(tmp_path)
-        speakers = i.get_speakers()
-        interiewee = i.identify_interviewee(m).result
-        return {"message": "Speakers found (participant identified)", "speakers": speakers, "participant": interiewee}
+        speakers: list[str] = i.get_speakers()
+        interviewee = i.identify_interviewee(m)
+        participant = interviewee.result
+        return {
+            "message": "Speakers found (participant identified)",
+            "speakers": speakers,
+            "participant": participant,
+            "validation": interviewee.validation,
+        }
     except Exception as e:
         print(f"❌ qux360 failed: {e}")
         return {"speakers": [], "participant": "", "error": str(e)}
