@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { APP_TITLE } from "$lib/common/constants";
+    import { APP_TITLE } from "$lib/common";
     import { Header } from "carbon-components-svelte";
 </script>
 
