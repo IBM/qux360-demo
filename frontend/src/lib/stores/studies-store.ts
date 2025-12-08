@@ -1,12 +1,15 @@
 import {
     PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
+    READY_FOR_ANALYSIS_TRANSCRIPT_STATUS,
     READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
-    READY_TO_IDENTIFY_PARTICIPANTS,
+    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
+    RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
     RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
 } from "$lib/common";
 import {
     ValidationStatus,
     type IdentifyParticipantResponse,
+    type SpeakerAnonymizationResponse,
     type StudyI,
     type TranscriptFileI,
     type UploadTranscriptFileSuccessI,
@@ -28,7 +31,10 @@ const createStudiesStore = () => {
                 const transcriptFile: TranscriptFileI =
                     study.transcriptFiles[i];
 
-                if (transcriptFile.status === READY_TO_IDENTIFY_PARTICIPANTS) {
+                if (
+                    transcriptFile.status ===
+                    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS
+                ) {
                     transcriptFile.status =
                         RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS;
 
@@ -126,6 +132,41 @@ const createStudiesStore = () => {
             update((studies: StudyI[]) =>
                 studies.filter((s: StudyI) => s.id !== id),
             );
+        },
+        runTranscriptSpeakerAnonymization: async (
+            study: StudyI,
+            transcriptFileId: number,
+        ) => {
+            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
+                (transcriptFile: TranscriptFileI) =>
+                    transcriptFile.id === transcriptFileId,
+            );
+            if (transcriptFileIndex === -1) {
+                return;
+            }
+            const transcriptFile: TranscriptFileI =
+                study.transcriptFiles[transcriptFileIndex];
+
+            transcriptFile.status = RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS;
+
+            const data: SpeakerAnonymizationResponse =
+                await apiService.getSpeakerAnonymizationMap(transcriptFile.id!);
+
+            transcriptFile.status = READY_FOR_ANALYSIS_TRANSCRIPT_STATUS;
+
+            const updatedTranscriptFile: TranscriptFileI = {
+                ...transcriptFile,
+                speaker_anonymization_map: data.anonymization_map,
+            };
+
+            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
         },
     };
 };

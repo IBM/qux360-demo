@@ -1,12 +1,16 @@
 <script lang="ts">
-    import { ParticipantIdentification, TranscriptLines } from ".";
+    import {
+        ParticipantIdentification,
+        SpeakerAnonymization,
+        TranscriptLines,
+    } from ".";
 </script>
 
 <div class="transcript-information-tab-content-container">
     <div class="left-content-container">
         <ParticipantIdentification />
 
-        <h3 class="transcript-section-title">Speaker anonymization</h3>
+        <SpeakerAnonymization />
 
         <h3 class="transcript-section-title">Entity anonymization</h3>
     </div>

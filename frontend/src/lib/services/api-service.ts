@@ -1,5 +1,6 @@
 import type {
     IdentifyParticipantResponse,
+    SpeakerAnonymizationResponse,
     TranscriptFileI,
     TranscriptLineI,
     UploadTranscriptFileErrorI,
@@ -139,6 +140,48 @@ class ApiService {
                 speakers: [],
                 participant: "",
                 validation: null,
+            };
+        }
+    }
+
+    public async getSpeakerAnonymizationMap(
+        fileId: number,
+    ): Promise<SpeakerAnonymizationResponse> {
+        const body: string = JSON.stringify({ id: fileId });
+
+        try {
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/anonymization_map`,
+                {
+                    method: APIMethodsType.POST,
+                    headers: this.getHeaders(),
+                    body: body,
+                },
+            );
+
+            if (!response.ok) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Speaker anonymization failed",
+                    subtitle: `HTTP error! Status: ${response.status}`,
+                });
+            }
+
+            const data: SpeakerAnonymizationResponse = await response.json();
+
+            if (data.error) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Speaker anonymization failed",
+                    subtitle: data.error,
+                });
+            }
+
+            return data;
+        } catch (error) {
+            return {
+                error: "An error occurred while anonymizing the speakers",
+                anonymization_map: null,
             };
         }
     }

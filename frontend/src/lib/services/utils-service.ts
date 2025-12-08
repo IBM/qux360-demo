@@ -1,5 +1,5 @@
 import {
-    READY_TO_IDENTIFY_PARTICIPANTS,
+    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
     SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP,
     SERIALIZABLE_TRANSCRIPT_STATUS_TO_ICON_MAP,
 } from "$lib/common";
@@ -77,6 +77,7 @@ class UtilsService {
             speakers: transcriptFile.speakers,
             participant: transcriptFile.participant,
             validation: transcriptFile.validation,
+            speaker_anonymization_map: transcriptFile.speaker_anonymization_map,
         };
     }
 
@@ -86,10 +87,11 @@ class UtilsService {
             file: file,
             size: file.size,
             type: file.type,
-            status: READY_TO_IDENTIFY_PARTICIPANTS,
+            status: READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
             speakers: [],
             participant: "",
             validation: null,
+            speaker_anonymization_map: null,
         };
     }
 
@@ -176,6 +178,8 @@ class UtilsService {
             speakers: serializableTranscriptFile.speakers,
             participant: serializableTranscriptFile.participant,
             validation: serializableTranscriptFile.validation,
+            speaker_anonymization_map:
+                serializableTranscriptFile.speaker_anonymization_map,
         };
     }
 
