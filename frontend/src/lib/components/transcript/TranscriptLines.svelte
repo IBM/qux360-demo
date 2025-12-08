@@ -3,24 +3,36 @@
     import { apiService } from "$lib/services";
     import { selectedTranscriptStore } from "$lib/stores";
     import { Search, SkeletonText } from "carbon-components-svelte";
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
+    import type { Unsubscriber } from "svelte/store";
 
     let searchQuoteOrTopicValue: string = "";
 
     let isLoadingTranscriptLines: boolean = true;
     let transcriptLines: TranscriptLineI[] = [];
 
+    let unsubscribeSelectedTranscriptStore: Unsubscriber;
+
     onMount(() => {
-        selectedTranscriptStore.subscribe(
+        unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
             async (selectedTranscript: TranscriptFileI | null) => {
-                if (selectedTranscript && selectedTranscript.id) {
+                isLoadingTranscriptLines = true;
+
+                if (selectedTranscript?.id) {
                     transcriptLines = await apiService.getTranscriptLines(
                         selectedTranscript.id,
                     );
+                } else {
+                    transcriptLines = [];
                 }
+
                 isLoadingTranscriptLines = false;
             },
         );
+    });
+
+    onDestroy(() => {
+        unsubscribeSelectedTranscriptStore?.();
     });
 </script>
 
@@ -57,6 +69,7 @@
     @use "@carbon/type";
 
     .transcript-lines-external-container {
+        flex: 1;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
