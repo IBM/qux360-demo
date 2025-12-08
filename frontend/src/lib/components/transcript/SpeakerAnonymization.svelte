@@ -13,6 +13,7 @@
         studiesStore,
     } from "$lib/stores";
     import { Button, TextInput } from "carbon-components-svelte";
+    import { Close } from "carbon-icons-svelte";
 
     let speakerAnonymizationMap: SpeakerAnonymizationMap | null = null;
 
@@ -32,6 +33,25 @@
                 $selectedTranscriptStore.id,
             );
         }
+    };
+
+    const updateAlias = (speaker: string, alias: string): void => {
+        if (
+            $selectedStudyStore &&
+            $selectedTranscriptStore &&
+            $selectedTranscriptStore.id
+        ) {
+            studiesStore.updateSpeakerAnonymizationAlias(
+                $selectedStudyStore.id,
+                $selectedTranscriptStore.id,
+                speaker,
+                alias,
+            );
+        }
+    };
+
+    const clearAlias = (speaker: string): void => {
+        updateAlias(speaker, "");
     };
 </script>
 
@@ -55,9 +75,23 @@
         <Button skeleton size="field" />
     {:else if speakerAnonymizationMap}
         {#each Object.entries(speakerAnonymizationMap) as [name, alias]}
-            <div class="speaker-anonymization-line-container">
-                <TextInput labelText="Speaker name" value={name} />
-                <TextInput labelText="Replacement text" value={alias} />
+            <div class="speaker-anonymization-item-container">
+                <TextInput labelText="Speaker name" value={name} readonly />
+                <TextInput
+                    labelText="Replacement text"
+                    value={alias}
+                    on:input={(event: CustomEvent) => {
+                        updateAlias(name, event.detail);
+                    }}
+                />
+                <Button
+                    class="close-speaker-anonymization-item-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={() => clearAlias(name)}
+                >
+                    <Close size={16} />
+                </Button>
             </div>
         {/each}
     {/if}
@@ -77,8 +111,15 @@
         line-height: 1.25rem;
     }
 
-    .speaker-anonymization-line-container {
+    .speaker-anonymization-item-container {
         display: flex;
+        align-items: flex-end;
         gap: 1rem;
+    }
+
+    :global(.close-speaker-anonymization-item-button) {
+        color: black;
+        padding: 3px !important;
+        margin-bottom: 0.25rem;
     }
 </style>

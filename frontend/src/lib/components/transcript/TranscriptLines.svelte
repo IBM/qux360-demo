@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { type TranscriptFileI, type TranscriptLineI } from "$lib/models";
+    import {
+        type SpeakerAnonymizationMap,
+        type TranscriptFileI,
+        type TranscriptLineI,
+    } from "$lib/models";
     import { apiService } from "$lib/services";
     import { selectedTranscriptStore } from "$lib/stores";
     import { Search, SkeletonText } from "carbon-components-svelte";
@@ -19,9 +23,15 @@
                 isLoadingTranscriptLines = true;
 
                 if (selectedTranscript?.id) {
-                    transcriptLines = await apiService.getTranscriptLines(
-                        selectedTranscript.id,
+                    let lines: TranscriptLineI[] =
+                        await apiService.getTranscriptLines(
+                            selectedTranscript.id,
+                        );
+                    lines = applySpeakerAnonymization(
+                        lines,
+                        selectedTranscript.speaker_anonymization_map,
                     );
+                    transcriptLines = lines;
                 } else {
                     transcriptLines = [];
                 }
@@ -34,6 +44,18 @@
     onDestroy(() => {
         unsubscribeSelectedTranscriptStore?.();
     });
+
+    const applySpeakerAnonymization = (
+        lines: TranscriptLineI[],
+        map: SpeakerAnonymizationMap | null,
+    ): TranscriptLineI[] => {
+        if (!map) return lines;
+
+        return lines.map((line: TranscriptLineI) => ({
+            ...line,
+            speaker: map[line.speaker] || line.speaker,
+        }));
+    };
 </script>
 
 <div class="transcript-lines-external-container">

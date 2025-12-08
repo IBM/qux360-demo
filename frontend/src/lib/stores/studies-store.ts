@@ -168,6 +168,41 @@ const createStudiesStore = () => {
 
             await new Promise((resolve) => setTimeout(resolve, 500));
         },
+        updateSpeakerAnonymizationAlias: (
+            studyId: string,
+            transcriptFileId: number,
+            speaker: string,
+            newAlias: string,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map(
+                            (transcriptFile: TranscriptFileI) => {
+                                if (transcriptFile.id !== transcriptFileId)
+                                    return transcriptFile;
+
+                                return {
+                                    ...transcriptFile,
+                                    speaker_anonymization_map: {
+                                        ...transcriptFile.speaker_anonymization_map,
+                                        [speaker]: newAlias,
+                                    },
+                                };
+                            },
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
     };
 };
 
