@@ -78,6 +78,7 @@ class UtilsService {
             participant: transcriptFile.participant,
             validation: transcriptFile.validation,
             speaker_anonymization_map: transcriptFile.speaker_anonymization_map,
+            entity_anonymization_map: transcriptFile.entity_anonymization_map,
         };
     }
 
@@ -92,6 +93,7 @@ class UtilsService {
             participant: "",
             validation: null,
             speaker_anonymization_map: null,
+            entity_anonymization_map: {},
         };
     }
 
@@ -180,6 +182,8 @@ class UtilsService {
             validation: serializableTranscriptFile.validation,
             speaker_anonymization_map:
                 serializableTranscriptFile.speaker_anonymization_map,
+            entity_anonymization_map:
+                serializableTranscriptFile.entity_anonymization_map,
         };
     }
 

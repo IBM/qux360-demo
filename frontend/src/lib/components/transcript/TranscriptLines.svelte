@@ -1,5 +1,6 @@
 <script lang="ts">
     import {
+        type EntityAnonymizationMap,
         type SpeakerAnonymizationMap,
         type TranscriptFileI,
         type TranscriptLineI,
@@ -31,6 +32,10 @@
                         lines,
                         selectedTranscript.speaker_anonymization_map,
                     );
+                    lines = applyEntityAnonymization(
+                        lines,
+                        selectedTranscript.entity_anonymization_map,
+                    );
                     transcriptLines = lines;
                 } else {
                     transcriptLines = [];
@@ -54,6 +59,31 @@
         return lines.map((line: TranscriptLineI) => ({
             ...line,
             speaker: map[line.speaker] || line.speaker,
+        }));
+    };
+
+    const applyEntityAnonymization = (
+        lines: TranscriptLineI[],
+        map: EntityAnonymizationMap,
+    ): TranscriptLineI[] => {
+        const entityNames = Object.keys(map);
+        if (entityNames.length === 0) return lines;
+
+        const escapedNames: string[] = entityNames.map((name: string) =>
+            name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        );
+
+        const regex: RegExp = new RegExp(
+            `\\b(${escapedNames.join("|")})\\b`,
+            "g",
+        );
+
+        return lines.map((line: TranscriptLineI) => ({
+            ...line,
+            statement: line.statement.replace(
+                regex,
+                (matched) => map[matched] || matched,
+            ),
         }));
     };
 </script>

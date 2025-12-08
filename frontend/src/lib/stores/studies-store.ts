@@ -203,6 +203,110 @@ const createStudiesStore = () => {
                 });
             });
         },
+        addEntityAnonymizationAlias: (
+            studyId: string,
+            transcriptFileId: number,
+            entity: string,
+            alias: string,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map(
+                            (transcriptFile: TranscriptFileI) => {
+                                if (transcriptFile.id !== transcriptFileId)
+                                    return transcriptFile;
+
+                                return {
+                                    ...transcriptFile,
+                                    entity_anonymization_map: {
+                                        ...transcriptFile.entity_anonymization_map,
+                                        [entity]: alias,
+                                    },
+                                };
+                            },
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        updateEntityAnonymizationAlias: (
+            studyId: string,
+            transcriptFileId: number,
+            entity: string,
+            newAlias: string,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map(
+                            (transcriptFile: TranscriptFileI) => {
+                                if (transcriptFile.id !== transcriptFileId)
+                                    return transcriptFile;
+
+                                return {
+                                    ...transcriptFile,
+                                    entity_anonymization_map: {
+                                        ...transcriptFile.entity_anonymization_map,
+                                        [entity]: newAlias,
+                                    },
+                                };
+                            },
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        removeEntityAnonymizationAlias: (
+            studyId: string,
+            transcriptFileId: number,
+            entity: string,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map(
+                            (transcriptFile: TranscriptFileI) => {
+                                if (transcriptFile.id !== transcriptFileId)
+                                    return transcriptFile;
+
+                                const { [entity]: _, ...remainingEntities } =
+                                    transcriptFile.entity_anonymization_map;
+
+                                return {
+                                    ...transcriptFile,
+                                    entity_anonymization_map: remainingEntities,
+                                };
+                            },
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
     };
 };
 

@@ -2,6 +2,7 @@ import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 
 export type SpeakerAnonymizationMap = { [name: string]: string };
+export type EntityAnonymizationMap = { [name: string]: string };
 
 export enum UploadedTranscriptFileStatus {
     Success = "success",
@@ -55,6 +56,7 @@ export interface TranscriptFileI {
     participant: string;
     validation: IntervieweeValidation | null;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
+    entity_anonymization_map: EntityAnonymizationMap;
 }
 
 export enum SerializableTranscriptStatusIcon {
@@ -83,6 +85,7 @@ export interface SerializableTranscriptFileI {
     participant: string;
     validation: IntervieweeValidation | null;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
+    entity_anonymization_map: EntityAnonymizationMap;
 }
 
 export enum ValidationStatus {
