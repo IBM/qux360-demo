@@ -1,5 +1,7 @@
+from typing import Any
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import tempfile
 import qux360
 from qux360.core import Interview
@@ -81,6 +83,17 @@ def get_file_from_db(conn: sqlite3.Connection, file_id: int):
         return {"filename": row[0], "content_type": row[1], "content": row[2]}
     return None
 
+
+def write_temp_file(row: dict[str, Any]) -> str:
+    # write to a temporary file for qux360's Interview which expects a path
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    return tmp_path
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
@@ -114,11 +127,7 @@ async def identify_participant(request: FileIdRequest):
             "validation": None,
         }
 
-    # write to a temporary file for qux360's Interview which expects a path
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
     try:
         i = Interview(tmp_path)
@@ -133,7 +142,7 @@ async def identify_participant(request: FileIdRequest):
         }
     except Exception as e:
         print(f"❌ qux360 failed: {e}")
-        return {"speakers": [], "participant": "", "error": str(e)}
+        return {"error": str(e), "speakers": [], "participant": "", "validation": None}
 
 
 @app.post("/anonymization_map")
@@ -144,10 +153,7 @@ async def get_speakers_anonymization_map(request: FileIdRequest):
     if not row:
         return {"anonymization_map": {}, "error": "file not found"}
 
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
     try:
         i = Interview(tmp_path)
@@ -156,3 +162,26 @@ async def get_speakers_anonymization_map(request: FileIdRequest):
     except Exception as e:
         print(f"❌ qux360 failed: {e}")
         return {"anonymization_map": {}, "error": str(e)}
+
+
+@app.get("/transcript/{file_id}")
+async def get_transcript(file_id: int):
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {
+            "error": "file not found",
+        }
+
+    tmp_path = write_temp_file(row)
+
+    try:
+        i = Interview(tmp_path)
+        transcript_raw = i.transcript_raw
+        selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
+        data = selected_df.to_dict(orient="records")
+
+        return JSONResponse(content=data)
+
+    except Exception as e:
+        print(f"❌ qux360 failed: {e}")
+        return {"error": str(e)}
