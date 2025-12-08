@@ -18,6 +18,7 @@ enum APIMethodsType {
 
 class ApiService {
     private BACKEND_API_URL: string = "";
+    private transcriptLinesCache: Map<number, TranscriptLineI[]> = new Map();
 
     constructor() {
         if (typeof window !== "undefined") {
@@ -189,6 +190,10 @@ class ApiService {
     public async getTranscriptLines(
         fileId: number,
     ): Promise<TranscriptLineI[]> {
+        if (this.transcriptLinesCache.has(fileId)) {
+            return this.transcriptLinesCache.get(fileId)!;
+        }
+
         try {
             const response: Response = await fetch(
                 `${this.BACKEND_API_URL}/transcript/${fileId}`,
@@ -220,7 +225,11 @@ class ApiService {
                 return [];
             }
 
-            return data as TranscriptLineI[];
+            const transcriptLines: TranscriptLineI[] =
+                data as TranscriptLineI[];
+            this.transcriptLinesCache.set(fileId, transcriptLines);
+
+            return transcriptLines;
         } catch (error) {
             notificationsStore.addNotification({
                 kind: "error",
