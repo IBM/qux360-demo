@@ -1,6 +1,7 @@
 import type {
     IdentifyParticipantResponse,
     TranscriptFileI,
+    TranscriptLineI,
     UploadTranscriptFileErrorI,
     UploadTranscriptFileResultI,
     UploadTranscriptFileSuccessI,
@@ -139,6 +140,52 @@ class ApiService {
                 participant: "",
                 validation: null,
             };
+        }
+    }
+
+    public async getTranscriptLines(
+        fileId: number,
+    ): Promise<TranscriptLineI[]> {
+        try {
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/transcript/${fileId}`,
+                {
+                    method: APIMethodsType.GET,
+                    headers: this.getHeaders(),
+                },
+            );
+
+            if (!response.ok) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Transcript fetch failed",
+                    subtitle: `HTTP error! Status: ${response.status}`,
+                });
+
+                return [];
+            }
+
+            const data = await response.json();
+
+            if ((data as any).error) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Transcript fetch failed",
+                    subtitle: (data as any).error,
+                });
+
+                return [];
+            }
+
+            return data as TranscriptLineI[];
+        } catch (error) {
+            notificationsStore.addNotification({
+                kind: "error",
+                title: "Transcript fetch failed",
+                subtitle: "Unexpected network or server error",
+            });
+
+            return [];
         }
     }
 }
