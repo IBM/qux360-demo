@@ -41,6 +41,7 @@
         padding-bottom: 2rem;
         padding-left: 2rem;
         padding-right: 1rem;
+        overflow: scroll;
     }
 
     .right-content-container {
