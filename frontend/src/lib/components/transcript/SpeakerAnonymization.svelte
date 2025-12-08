@@ -63,6 +63,7 @@
         </p>
     {:else if $selectedTranscriptStore.status === READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS}
         <Button
+            class="run-anonymization-button"
             kind="primary"
             size="field"
             on:click={async () => {

@@ -1,5 +1,6 @@
 <script lang="ts">
     import {
+        EntityAnonymization,
         ParticipantIdentification,
         SpeakerAnonymization,
         TranscriptLines,
@@ -12,7 +13,7 @@
 
         <SpeakerAnonymization />
 
-        <h3 class="transcript-section-title">Entity anonymization</h3>
+        <EntityAnonymization />
     </div>
     <div class="right-content-container">
         <TranscriptLines />
@@ -55,5 +56,9 @@
     :global(.transcript-section-title) {
         @include type.type-style("heading-03");
         line-height: 1.75rem;
+    }
+
+    :global(.run-anonymization-button) {
+        width: 203px;
     }
 </style>

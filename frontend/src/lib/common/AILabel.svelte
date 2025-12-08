@@ -5,9 +5,21 @@
     export let bodyText: string;
     export let modelName: string;
     export let modelLink: string;
+    export let alignment: string = "bottom-left";
+    export let kind: "default" | "inline" = "default";
+
+    const handleAILabelClick = (event: PointerEvent): void => {
+        event.stopPropagation();
+    };
 </script>
 
-<cds-ai-label autoalign="" size="xs" alignment="bottom-left">
+<cds-ai-label
+    autoalign=""
+    size="xs"
+    {alignment}
+    {kind}
+    on:click={handleAILabelClick}
+>
     <div slot="body-text" class="ai-label-body-container">
         <span class="ai-explained-label">AI explained</span>
         <h2 class="ai-label-heading">{headerText}</h2>
