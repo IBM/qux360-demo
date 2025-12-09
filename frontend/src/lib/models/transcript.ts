@@ -136,6 +136,7 @@ export interface SpeakerAnonymizationResponse {
 }
 
 export interface TranscriptLineI {
+    line_number: number;
     timestamp: string;
     speaker: string;
     statement: string;

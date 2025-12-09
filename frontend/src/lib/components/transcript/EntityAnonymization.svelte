@@ -7,7 +7,7 @@
         TranscriptFileI,
         TranscriptLineI,
     } from "$lib/models";
-    import { apiService } from "$lib/services";
+    import { apiService, utilsService } from "$lib/services";
     import {
         selectedStudyStore,
         selectedTranscriptStore,
@@ -227,6 +227,10 @@
                 {} as ExtendedEntityAnonymizationMap,
             );
         };
+
+    const handleTranscriptLineHeaderClick = (lineNumber: number): void => {
+        utilsService.scrollToTranscriptLine(lineNumber);
+    };
 </script>
 
 <div class="entity-anonymization-container">
@@ -294,9 +298,16 @@
                             <SkeletonText paragraph />
                         {/each}
                     {:else}
-                        {#each extendedEntityAnonymization.transcriptLines as transcriptLine}
+                        {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.line_number)}
                             <div class="transcript-line-container">
-                                <span>
+                                <span
+                                    class="transcript-line-header"
+                                    on:click={() => {
+                                        handleTranscriptLineHeaderClick(
+                                            transcriptLine.line_number,
+                                        );
+                                    }}
+                                >
                                     {transcriptLine.speaker}
                                     <strong>•</strong>
                                     {transcriptLine.timestamp}
@@ -389,6 +400,11 @@
         flex-direction: column;
         @include type.type-style("label-02");
         line-height: 1.125rem;
+    }
+
+    .transcript-line-header:hover {
+        cursor: pointer;
+        opacity: 0.5;
     }
 
     :global(.run-entity-anonymization-button) {

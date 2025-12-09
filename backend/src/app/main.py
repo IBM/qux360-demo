@@ -178,7 +178,10 @@ async def get_transcript(file_id: int):
         i = Interview(tmp_path)
         transcript_raw = i.transcript_raw
         selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
-        data = selected_df.to_dict(orient="records")
+        data = [
+            {"line_number": idx + 1, **row}
+            for idx, row in enumerate(selected_df.to_dict(orient="records"))
+        ]
 
         return JSONResponse(content=data)
 

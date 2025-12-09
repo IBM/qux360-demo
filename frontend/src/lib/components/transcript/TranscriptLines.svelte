@@ -122,8 +122,11 @@
                 <SkeletonText paragraph />
             {/each}
         {:else}
-            {#each filteredTranscriptLines as transcriptLine}
-                <div class="transcript-line-container">
+            {#each filteredTranscriptLines as transcriptLine (transcriptLine.line_number)}
+                <div
+                    class="transcript-line-container"
+                    id={`transcript-line-${transcriptLine.line_number}`}
+                >
                     <span class="transcript-line-header-text">
                         <span class="speaker-name">
                             {transcriptLine.speaker}
@@ -183,5 +186,25 @@
     .transcript-line-text {
         @include type.type-style("body-01");
         line-height: 1.25rem;
+    }
+
+    $highlight-transcript-line-color: #d0e2ff;
+
+    :global(.highlight-pulse) {
+        animation: pulse-highlight 3s ease-out;
+        background-color: rgba($highlight-transcript-line-color, 0.4);
+        border-radius: 0.25rem;
+    }
+
+    @keyframes pulse-highlight {
+        0% {
+            background-color: rgba($highlight-transcript-line-color, 0.9);
+        }
+        50% {
+            background-color: rgba($highlight-transcript-line-color, 0.4);
+        }
+        100% {
+            background-color: transparent;
+        }
     }
 </style>
