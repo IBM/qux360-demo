@@ -46,6 +46,7 @@ export enum TranscriptState {
     Running = "running",
     Ready = "ready",
     Review = "review",
+    Finish = "finish",
 }
 
 export interface TranscriptStatusI {

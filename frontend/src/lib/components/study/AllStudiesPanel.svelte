@@ -1,5 +1,9 @@
 <script lang="ts">
-    import type { StudyI, TranscriptFileI } from "$lib/models";
+    import {
+        TranscriptState,
+        type StudyI,
+        type TranscriptFileI,
+    } from "$lib/models";
     import {
         selectedStudyIdStore,
         selectedTranscriptFileIdStore,
@@ -56,9 +60,19 @@
                             handleTranscriptFileItemClick(transcriptFile);
                         }}
                     >
-                        <span class="transcript-file-name">
+                        <span
+                            class="transcript-file-name"
+                            class:transcript-file-needs-review={transcriptFile
+                                .status.state === TranscriptState.Review}
+                        >
                             {transcriptFile.name}
                         </span>
+                        {#if transcriptFile.status.state === TranscriptState.Review || transcriptFile.status.state === TranscriptState.Finish}
+                            <svelte:component
+                                this={transcriptFile.status.icon}
+                                style="fill: {transcriptFile.status.iconColor};"
+                            />
+                        {/if}
                     </div>
                 {/each}
             </Stack>
@@ -121,6 +135,8 @@
 
     .transcript-file-item-container {
         display: flex;
+        align-items: center;
+        gap: 0.25rem;
         padding-top: 0.25rem;
         padding-bottom: 0.25rem;
         padding-left: 3.5rem;
@@ -129,5 +145,9 @@
 
     .transcript-file-name {
         @include type.type-style("body-compact-02");
+    }
+
+    .transcript-file-needs-review {
+        font-weight: 700;
     }
 </style>

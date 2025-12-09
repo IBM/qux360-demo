@@ -124,7 +124,7 @@ export const N_TOPICS_IDENTIFIED_TRANSCRIPT_STATUS: TranscriptStatusI = {
 export const READY_TRANSCRIPT_STATUS: TranscriptStatusI = {
     icon: CircleFill,
     iconColor: ICON_SUCCESS_COLOR,
-    state: TranscriptState.Ready,
+    state: TranscriptState.Finish,
     status: "",
     description:
         "Displayed next to transcript names whenever there is new content ready that the user has not seen yet and all validation is high quality (e.g. participant identification, anonymization, topics)",
