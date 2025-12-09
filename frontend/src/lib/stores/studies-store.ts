@@ -1,16 +1,21 @@
 import {
+    NEEDS_REVIEW_STUDY_STATUS,
     PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
     READY_FOR_ANALYSIS_TRANSCRIPT_STATUS,
     READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
+    READY_STUDY_STATUS,
     READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
     RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
     RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
+    TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS,
 } from "$lib/common";
 import {
+    TranscriptState,
     ValidationStatus,
     type IdentifyParticipantResponse,
     type SpeakerAnonymizationResponse,
     type StudyI,
+    type StudyStatusI,
     type TranscriptFileI,
     type UploadTranscriptFileSuccessI,
 } from "$lib/models";
@@ -22,6 +27,46 @@ const createStudiesStore = () => {
     const { subscribe, set, update } = writable<StudyI[]>(
         studiesCacheService.getAllStudies(),
     );
+
+    const computeStudyStatus = (study: StudyI): StudyStatusI => {
+        const transcripts: TranscriptFileI[] = study.transcriptFiles;
+
+        const needsReview = transcripts.some(
+            (t: TranscriptFileI) => t.status.state === TranscriptState.Review,
+        );
+
+        if (!needsReview) {
+            return READY_STUDY_STATUS;
+        }
+
+        let participantReviewCount: number = transcripts.filter(
+            (t: TranscriptFileI) =>
+                t.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
+        ).length;
+
+        let topicReviewCount: number = transcripts.filter(
+            (t: TranscriptFileI) =>
+                t.status === TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS,
+        ).length;
+
+        let descriptionParts: string[] = [];
+
+        if (participantReviewCount > 0) {
+            descriptionParts.push(
+                `${participantReviewCount} transcript(s) need participant review`,
+            );
+        }
+        if (topicReviewCount > 0) {
+            descriptionParts.push(
+                `${topicReviewCount} transcript(s) need topic review`,
+            );
+        }
+
+        return {
+            ...NEEDS_REVIEW_STUDY_STATUS,
+            description: descriptionParts.join(". "),
+        };
+    };
 
     return {
         subscribe,
@@ -66,6 +111,7 @@ const createStudiesStore = () => {
                     };
 
                     study.transcriptFiles[i] = updatedTranscriptFile;
+                    study.status = computeStudyStatus(study);
 
                     await studiesCacheService.update(study);
                     update((studies: StudyI[]) =>
@@ -109,6 +155,7 @@ const createStudiesStore = () => {
                     return transcriptFile; // If not found, leave the file unchanged
                 },
             );
+            study.status = computeStudyStatus(study);
 
             await studiesCacheService.add(study);
             update((studies: StudyI[]) => [...studies, study]);
@@ -160,6 +207,7 @@ const createStudiesStore = () => {
             };
 
             study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+            study.status = computeStudyStatus(study);
 
             await studiesCacheService.update(study);
             update((studies: StudyI[]) =>
