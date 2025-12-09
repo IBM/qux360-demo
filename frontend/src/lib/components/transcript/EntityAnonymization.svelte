@@ -20,7 +20,7 @@
         TextInput,
     } from "carbon-components-svelte";
     import { Add, Close } from "carbon-icons-svelte";
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import type { Unsubscriber } from "svelte/store";
 
     let runEntityAnonymizationButtonContentElementRef: HTMLElement;
@@ -90,6 +90,10 @@
                 isLoadingTranscriptLines = false;
             },
         );
+    });
+
+    onDestroy(() => {
+        unsubscribeSelectedTranscriptStore?.();
     });
 
     const applySpeakerAnonymization = (
