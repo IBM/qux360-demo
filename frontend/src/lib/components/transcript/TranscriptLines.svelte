@@ -15,8 +15,18 @@
 
     let isLoadingTranscriptLines: boolean = true;
     let transcriptLines: TranscriptLineI[] = [];
+    let filteredTranscriptLines: TranscriptLineI[] = [];
 
     let unsubscribeSelectedTranscriptStore: Unsubscriber;
+
+    $: filteredTranscriptLines = transcriptLines.filter(
+        (line: TranscriptLineI) => {
+            if (!searchQuoteOrTopicValue.trim()) return true;
+            return line.statement
+                .toLowerCase()
+                .includes(searchQuoteOrTopicValue.toLowerCase());
+        },
+    );
 
     onMount(() => {
         unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
@@ -86,6 +96,18 @@
             ),
         }));
     };
+
+    const highlightSearch = (text: string): string => {
+        if (!searchQuoteOrTopicValue.trim()) return text;
+
+        const escaped: string = searchQuoteOrTopicValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+        );
+        const regex: RegExp = new RegExp(`(${escaped})`, "gi");
+
+        return text.replace(regex, "<mark>$1</mark>");
+    };
 </script>
 
 <div class="transcript-lines-external-container">
@@ -100,7 +122,7 @@
                 <SkeletonText paragraph />
             {/each}
         {:else}
-            {#each transcriptLines as transcriptLine}
+            {#each filteredTranscriptLines as transcriptLine}
                 <div class="transcript-line-container">
                     <span class="transcript-line-header-text">
                         <span class="speaker-name">
@@ -109,7 +131,7 @@
                         {transcriptLine.timestamp}
                     </span>
                     <p class="transcript-line-text">
-                        {transcriptLine.statement}
+                        {@html highlightSearch(transcriptLine.statement)}
                     </p>
                 </div>
             {/each}
