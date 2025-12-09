@@ -2,7 +2,18 @@ import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 
 export type SpeakerAnonymizationMap = { [name: string]: string };
+
 export type EntityAnonymizationMap = { [name: string]: string };
+
+export interface ExtendedEntityAnonymization {
+    alias: string;
+    count: number;
+    transcriptLines: TranscriptLineI[];
+}
+
+export type ExtendedEntityAnonymizationMap = {
+    [name: string]: ExtendedEntityAnonymization;
+};
 
 export enum UploadedTranscriptFileStatus {
     Success = "success",

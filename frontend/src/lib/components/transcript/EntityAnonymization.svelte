@@ -1,26 +1,47 @@
 <script lang="ts">
     import { AILabel } from "$lib/common";
-    import type { EntityAnonymizationMap } from "$lib/models";
+    import type {
+        EntityAnonymizationMap,
+        ExtendedEntityAnonymizationMap,
+        SpeakerAnonymizationMap,
+        TranscriptFileI,
+        TranscriptLineI,
+    } from "$lib/models";
+    import { apiService } from "$lib/services";
     import {
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
     } from "$lib/stores";
-    import { Button, Modal, TextInput } from "carbon-components-svelte";
+    import {
+        Button,
+        Modal,
+        SkeletonText,
+        TextInput,
+    } from "carbon-components-svelte";
     import { Add, Close } from "carbon-icons-svelte";
     import { onMount } from "svelte";
+    import type { Unsubscriber } from "svelte/store";
 
     let runEntityAnonymizationButtonContentElementRef: HTMLElement;
 
     let entityAnonymizationMap: EntityAnonymizationMap = {};
+    let extendedEntityAnonymizationMap: ExtendedEntityAnonymizationMap = {};
 
     let isAddEntityModalOpen: boolean = false;
     let isExistingEntity: boolean = false;
     let newEntityName: string = "";
 
-    $: if ($selectedTranscriptStore) {
+    let isLoadingTranscriptLines: boolean = true;
+    let transcriptLines: TranscriptLineI[] = [];
+
+    let unsubscribeSelectedTranscriptStore: Unsubscriber;
+
+    $: if ($selectedTranscriptStore && transcriptLines) {
         entityAnonymizationMap =
             $selectedTranscriptStore.entity_anonymization_map;
+        extendedEntityAnonymizationMap =
+            transformToExtendedEntityAnonymizationMap();
     }
 
     $: isAddEntityModalOpen, (newEntityName = "");
@@ -47,7 +68,41 @@
             `;
             shadow.appendChild(style);
         });
+
+        unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
+            async (selectedTranscript: TranscriptFileI | null) => {
+                isLoadingTranscriptLines = true;
+
+                if (selectedTranscript?.id) {
+                    let lines: TranscriptLineI[] =
+                        await apiService.getTranscriptLines(
+                            selectedTranscript.id,
+                        );
+                    lines = applySpeakerAnonymization(
+                        lines,
+                        selectedTranscript.speaker_anonymization_map,
+                    );
+                    transcriptLines = lines;
+                } else {
+                    transcriptLines = [];
+                }
+
+                isLoadingTranscriptLines = false;
+            },
+        );
     });
+
+    const applySpeakerAnonymization = (
+        lines: TranscriptLineI[],
+        map: SpeakerAnonymizationMap | null,
+    ): TranscriptLineI[] => {
+        if (!map) return lines;
+
+        return lines.map((line: TranscriptLineI) => ({
+            ...line,
+            speaker: map[line.speaker] || line.speaker,
+        }));
+    };
 
     const runTranscriptEntityAnonymizationWithAI =
         async (): Promise<void> => {};
@@ -104,6 +159,59 @@
         }
         isAddEntityModalOpen = false;
     };
+
+    const countEntityMentions = (entity: string): number => {
+        if (!entity) return 0;
+
+        const escapedEntity: string = entity.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+        );
+        const regex: RegExp = new RegExp(`\\b${escapedEntity}\\b`, "gi"); // 'i' = case-insensitive
+
+        let count: number = 0;
+
+        for (const line of transcriptLines) {
+            const matches: RegExpMatchArray | null =
+                line.statement.match(regex);
+            if (matches) count += matches.length;
+        }
+
+        return count;
+    };
+
+    const getLinesWithEntity = (entity: string): TranscriptLineI[] => {
+        if (!entity) return [];
+
+        const escapedEntity: string = entity.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+        );
+        const regex: RegExp = new RegExp(`\\b${escapedEntity}\\b`, "i"); // 'i' = case-insensitive
+
+        return transcriptLines.filter((line: TranscriptLineI) =>
+            regex.test(line.statement),
+        );
+    };
+
+    const transformToExtendedEntityAnonymizationMap =
+        (): ExtendedEntityAnonymizationMap => {
+            return Object.entries(entityAnonymizationMap).reduce(
+                (acc, [entity, alias]) => {
+                    const lines: TranscriptLineI[] = getLinesWithEntity(entity);
+                    const count: number = countEntityMentions(entity);
+
+                    acc[entity] = {
+                        alias,
+                        count,
+                        transcriptLines: lines,
+                    };
+
+                    return acc;
+                },
+                {} as ExtendedEntityAnonymizationMap,
+            );
+        };
 </script>
 
 <div class="entity-anonymization-container">
@@ -141,12 +249,12 @@
             Add entity
         </Button>
     </div>
-    {#each Object.entries(entityAnonymizationMap) as [entity, alias]}
+    {#each Object.entries(extendedEntityAnonymizationMap) as [entity, extendedEntityAnonymization]}
         <div class="entity-anonymization-item-container">
             <TextInput labelText="Entity" value={entity} readonly />
             <TextInput
                 labelText="Replacement text"
-                value={alias}
+                value={extendedEntityAnonymization.alias}
                 on:input={(event: CustomEvent) => {
                     updateAlias(entity, event.detail);
                 }}
@@ -160,6 +268,33 @@
                 <Close size={16} />
             </Button>
         </div>
+        {#if extendedEntityAnonymization.count > 0}
+            <div class="mentions-container">
+                <span class="mentions-label">
+                    Mentions ({extendedEntityAnonymization.count})
+                </span>
+                <div class="transcript-lines-container">
+                    {#if isLoadingTranscriptLines}
+                        {#each Array(3) as _}
+                            <SkeletonText paragraph />
+                        {/each}
+                    {:else}
+                        {#each extendedEntityAnonymization.transcriptLines as transcriptLine}
+                            <div class="transcript-line-container">
+                                <span>
+                                    {transcriptLine.speaker}
+                                    <strong>•</strong>
+                                    {transcriptLine.timestamp}
+                                </span>
+                                <span>
+                                    {transcriptLine.statement}
+                                </span>
+                            </div>
+                        {/each}
+                    {/if}
+                </div>
+            </div>
+        {/if}
     {/each}
 </div>
 
@@ -183,6 +318,8 @@
 </Modal>
 
 <style lang="scss">
+    @use "@carbon/type";
+
     .entity-anonymization-container {
         display: flex;
         flex-direction: column;
@@ -203,6 +340,37 @@
         display: flex;
         align-items: flex-end;
         gap: 1rem;
+    }
+
+    .mentions-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-height: 188px;
+        padding: 0.75rem 1rem;
+        overflow: scroll;
+        background-color: var(--cds-ui-background);
+        border: 1px solid var(--cds-border-subtle-selected);
+        border-radius: 0.25rem;
+    }
+
+    .mentions-label {
+        @include type.type-style("label-02");
+        font-weight: 700;
+        line-height: 1.125rem;
+    }
+
+    .transcript-lines-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .transcript-line-container {
+        display: flex;
+        flex-direction: column;
+        @include type.type-style("label-02");
+        line-height: 1.125rem;
     }
 
     :global(.run-entity-anonymization-button) {
