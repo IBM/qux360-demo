@@ -194,6 +194,21 @@
         );
     };
 
+    const highlightEntity = (statement: string, entity: string): string => {
+        if (!entity) return statement;
+
+        const escapedEntity: string = entity.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+        );
+        const regex: RegExp = new RegExp(`\\b(${escapedEntity})\\b`, "gi");
+
+        return statement.replace(
+            regex,
+            "<strong class='bold-entity'>$1</strong>",
+        );
+    };
+
     const transformToExtendedEntityAnonymizationMap =
         (): ExtendedEntityAnonymizationMap => {
             return Object.entries(entityAnonymizationMap).reduce(
@@ -287,7 +302,10 @@
                                     {transcriptLine.timestamp}
                                 </span>
                                 <span>
-                                    {transcriptLine.statement}
+                                    {@html highlightEntity(
+                                        transcriptLine.statement,
+                                        entity,
+                                    )}
                                 </span>
                             </div>
                         {/each}
@@ -381,5 +399,9 @@
         color: black;
         padding: 3px !important;
         margin-bottom: 0.25rem;
+    }
+
+    :global(.bold-entity) {
+        font-weight: 700;
     }
 </style>
