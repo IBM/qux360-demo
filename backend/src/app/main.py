@@ -3,7 +3,6 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import tempfile
-import qux360
 from qux360.core import Interview
 from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
@@ -14,6 +13,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel
+from typing import Dict, Any
 
 app = FastAPI()
 load_dotenv()
@@ -44,6 +44,11 @@ app.add_middleware(
 
 DB_PATH = Path.cwd().joinpath("uploads.db")
 
+
+class SpeakersPayload(BaseModel):
+    fileId: int
+    anonymization_map: Dict[str, Any]
+
 # Initialize a very small SQLite DB to store uploaded files as blobs
 def init_db(path: Path):
     conn = sqlite3.connect(path)
@@ -53,9 +58,7 @@ def init_db(path: Path):
         CREATE TABLE IF NOT EXISTS uploads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
-            content_type TEXT,
-            content BLOB NOT NULL,
-            created_at TEXT NOT NULL
+            content BLOB NOT NULL
         )
         """
     )
@@ -65,22 +68,32 @@ def init_db(path: Path):
 
 db_conn = init_db(DB_PATH)
 
-def save_file_to_db(conn: sqlite3.Connection, filename: str, content_type: str, content: bytes) -> int:
+def save_file_to_db(conn: sqlite3.Connection, filename: str, content: bytes) -> int:
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO uploads (filename, content_type, content, created_at) VALUES (?, ?, ?, ?)",
-        (filename, content_type, content, datetime.utcnow().isoformat()),
+        "INSERT INTO uploads (filename, content) VALUES (?, ?)",
+        (filename, content),
     )
     conn.commit()
     return cur.lastrowid
 
 
+def update_file_in_db(conn: sqlite3.Connection, file_id: int, content: bytes) -> int:
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE uploads SET content = ? WHERE id = ?",
+        (sqlite3.Binary(content), file_id),
+    )
+    conn.commit()
+    return file_id
+
+
 def get_file_from_db(conn: sqlite3.Connection, file_id: int):
     cur = conn.cursor()
-    cur.execute("SELECT filename, content_type, content FROM uploads WHERE id = ?", (file_id,))
+    cur.execute("SELECT filename, content FROM uploads WHERE id = ?", (file_id, ))
     row = cur.fetchone()
     if row:
-        return {"filename": row[0], "content_type": row[1], "content": row[2]}
+        return {"filename": row[0], "content": row[1]}
     return None
 
 
@@ -99,7 +112,8 @@ async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
     try:
         content = await file.read()
-        file_id = save_file_to_db(db_conn, file.filename, file.content_type or "", content)
+        print(f"📁 Uploading file: {file.filename}, size: {len(content)} bytes")
+        file_id = save_file_to_db(db_conn, file.filename, content)
         print(f"✅ File saved in DB with id: {file_id}")
         return {"file_id": file_id}
     except Exception as e:
@@ -141,7 +155,7 @@ async def identify_participant(request: FileIdRequest):
             "validation": interviewee.validation,
         }
     except Exception as e:
-        print(f"❌ qux360 failed: {e}")
+        print(f"❌ qux360-demo failed: {e}")
         return {"error": str(e), "speakers": [], "participant": "", "validation": None}
 
 
@@ -160,8 +174,74 @@ async def get_speakers_anonymization_map(request: FileIdRequest):
         map = i.anonymize_speakers_generic()
         return {"message": "Anonymization map", "anonymization_map": map}
     except Exception as e:
-        print(f"❌ qux360 failed: {e}")
+        print(f"❌ qux360-demo failed: {e}")
         return {"anonymization_map": {}, "error": str(e)}
+
+
+@app.post("/anonymize_speakers")
+async def anonymize_speakers(speakers: SpeakersPayload):
+    file_id = speakers.fileId
+    anonymization_map = speakers.anonymization_map
+    print(f"🔍 Anonymizing speakers for file id: {file_id} with map: {anonymization_map}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"anonymized_speakers_map": "", "error": "file not found"}
+
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    try:
+        i = Interview(tmp_path)
+
+        if "speaker" not in i.transcript.columns:
+            raise ValueError("No 'speaker' column found in the transcript.")
+
+        i.speaker_mapping = anonymization_map
+        for k in anonymization_map.keys():
+            old = k
+            new = anonymization_map.get(k)
+
+            print(f"🔄 Renaming speaker '{old}' to '{new}'")
+            anonymized_map = i.rename_speaker(old, new)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as updated_tmp:
+            i.to_xlsx(updated_tmp, include_enriched=False)
+            updated_tmp_path = updated_tmp.name
+
+        with open(updated_tmp_path, "rb") as f:
+            updated_content = f.read()
+            file_id = update_file_in_db(db_conn, file_id, updated_content)
+            print(f"✅ File updated in DB with id: {file_id}")
+            return {"message": "Speakers anonymized", "anonymized_speakers_map": anonymized_map}
+
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"anonymized_speakers_map": "", "error": str(e)}
+    
+
+@app.post("/entities_anonymization_map")
+async def get_entities_anonymization_map(request: FileIdRequest):
+    file_id = request.id
+    print(f"🔍 Building entities anonymization map for file id: {file_id}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"entities_anonymization_map": {}, "error": "file not found"}
+
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    try:
+        i = Interview(tmp_path)
+        entities = i.detect_entities()
+        map = i.build_replacement_map(entities)
+        return {"message": "Entities anonymization map", "entities_anonymization_map": map}
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"entities_anonymization_map": {}, "error": str(e)}
 
 
 @app.get("/transcript/{file_id}")
@@ -186,5 +266,5 @@ async def get_transcript(file_id: int):
         return JSONResponse(content=data)
 
     except Exception as e:
-        print(f"❌ qux360 failed: {e}")
+        print(f"❌ qux360-demo failed: {e}")
         return {"error": str(e)}
