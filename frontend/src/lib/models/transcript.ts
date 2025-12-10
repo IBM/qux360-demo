@@ -142,6 +142,12 @@ export interface SpeakerAnonymizationResponse {
     speakers_anonymization_map: SpeakerAnonymizationMap | null;
 }
 
+export interface EntityAnonymizationResponse {
+    message?: string;
+    error?: string;
+    entities_anonymization_map: EntityAnonymizationMap | null;
+}
+
 export interface TranscriptLineI {
     line_number: number;
     timestamp: string;

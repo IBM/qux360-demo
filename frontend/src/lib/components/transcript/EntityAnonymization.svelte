@@ -16,11 +16,13 @@
     import {
         Button,
         Modal,
+        SkeletonPlaceholder,
         SkeletonText,
         TextInput,
+        TextInputSkeleton,
     } from "carbon-components-svelte";
     import { Add, Close } from "carbon-icons-svelte";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy, onMount, tick } from "svelte";
     import type { Unsubscriber } from "svelte/store";
 
     let runEntityAnonymizationButtonContentElementRef: HTMLElement;
@@ -28,6 +30,7 @@
     let entityAnonymizationMap: EntityAnonymizationMap = {};
     let extendedEntityAnonymizationMap: ExtendedEntityAnonymizationMap = {};
 
+    let isRunningEntityAnonymization: boolean = false;
     let isAddEntityModalOpen: boolean = false;
     let isExistingEntity: boolean = false;
     let newEntityName: string = "";
@@ -49,24 +52,7 @@
 
     onMount(() => {
         requestAnimationFrame(() => {
-            const shadow: ShadowRoot | null | undefined =
-                runEntityAnonymizationButtonContentElementRef?.lastElementChild
-                    ?.shadowRoot;
-            if (!shadow) {
-                return;
-            }
-
-            const style: HTMLStyleElement = document.createElement("style");
-            style.textContent = `
-                .cds--slug__text {
-                    color: white !important;
-                }
-
-                .cds--slug__text::before {
-                    background: white !important;
-                }
-            `;
-            shadow.appendChild(style);
+            updateAILabelSlugColor();
         });
 
         unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
@@ -96,6 +82,27 @@
         unsubscribeSelectedTranscriptStore?.();
     });
 
+    const updateAILabelSlugColor = (): void => {
+        const shadow: ShadowRoot | null | undefined =
+            runEntityAnonymizationButtonContentElementRef?.lastElementChild
+                ?.shadowRoot;
+        if (!shadow) {
+            return;
+        }
+
+        const style: HTMLStyleElement = document.createElement("style");
+        style.textContent = `
+                .cds--slug__text {
+                    color: white !important;
+                }
+
+                .cds--slug__text::before {
+                    background: white !important;
+                }
+            `;
+        shadow.appendChild(style);
+    };
+
     const applySpeakerAnonymization = (
         lines: TranscriptLineI[],
         map: SpeakerAnonymizationMap | null,
@@ -108,8 +115,22 @@
         }));
     };
 
-    const runTranscriptEntityAnonymizationWithAI =
-        async (): Promise<void> => {};
+    const runTranscriptEntityAnonymizationWithAI = async (): Promise<void> => {
+        if (
+            $selectedStudyStore &&
+            $selectedTranscriptStore &&
+            $selectedTranscriptStore.id
+        ) {
+            isRunningEntityAnonymization = true;
+            await studiesStore.runTranscriptEntityAnonymization(
+                $selectedStudyStore,
+                $selectedTranscriptStore.id,
+            );
+            isRunningEntityAnonymization = false;
+            await tick();
+            updateAILabelSlugColor();
+        }
+    };
 
     const handleAddEntityButtonClick = (): void => {
         isAddEntityModalOpen = true;
@@ -244,6 +265,7 @@
             class="run-anonymization-button run-entity-anonymization-button"
             kind="primary"
             size="field"
+            skeleton={isRunningEntityAnonymization}
             on:click={async () => {
                 await runTranscriptEntityAnonymizationWithAI();
             }}
@@ -267,6 +289,7 @@
             kind="tertiary"
             size="field"
             icon={Add}
+            skeleton={isRunningEntityAnonymization}
             on:click={handleAddEntityButtonClick}
         >
             Add entity
@@ -274,59 +297,68 @@
     </div>
     {#each Object.entries(extendedEntityAnonymizationMap) as [entity, extendedEntityAnonymization]}
         <div class="entity-anonymization-item-container">
-            <TextInput labelText="Entity" value={entity} readonly />
-            <TextInput
-                labelText="Replacement text"
-                value={extendedEntityAnonymization.alias}
-                on:input={(event: CustomEvent) => {
-                    updateAlias(entity, event.detail);
-                }}
-            />
-            <Button
-                class="close-entity-anonymization-item-button"
-                kind="ghost"
-                size="small"
-                on:click={() => removeAlias(entity)}
-            >
-                <Close size={16} />
-            </Button>
+            {#if isRunningEntityAnonymization}
+                <TextInputSkeleton />
+                <TextInputSkeleton />
+            {:else}
+                <TextInput labelText="Entity" value={entity} readonly />
+                <TextInput
+                    labelText="Replacement text"
+                    value={extendedEntityAnonymization.alias}
+                    on:input={(event: CustomEvent) => {
+                        updateAlias(entity, event.detail);
+                    }}
+                />
+                <Button
+                    class="close-entity-anonymization-item-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={() => removeAlias(entity)}
+                >
+                    <Close size={16} />
+                </Button>
+            {/if}
         </div>
         {#if extendedEntityAnonymization.count > 0}
-            <div class="mentions-container">
-                <span class="mentions-label">
-                    Mentions ({extendedEntityAnonymization.count})
-                </span>
-                <div class="transcript-lines-container">
-                    {#if isLoadingTranscriptLines}
-                        {#each Array(3) as _}
-                            <SkeletonText paragraph />
-                        {/each}
-                    {:else}
-                        {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.line_number)}
-                            <div class="transcript-line-container">
-                                <span
-                                    class="transcript-line-header"
-                                    on:click={() => {
-                                        handleTranscriptLineHeaderClick(
-                                            transcriptLine.line_number,
-                                        );
-                                    }}
-                                >
-                                    {transcriptLine.speaker}
-                                    <strong>•</strong>
-                                    {transcriptLine.timestamp}
-                                </span>
-                                <span>
-                                    {@html highlightEntity(
-                                        transcriptLine.statement,
-                                        entity,
-                                    )}
-                                </span>
-                            </div>
-                        {/each}
-                    {/if}
+            {#if isRunningEntityAnonymization}
+                <SkeletonPlaceholder style="height: 94px; width: 100%;" />
+            {:else}
+                <div class="mentions-container">
+                    <span class="mentions-label">
+                        Mentions ({extendedEntityAnonymization.count})
+                    </span>
+                    <div class="transcript-lines-container">
+                        {#if isLoadingTranscriptLines}
+                            {#each Array(3) as _}
+                                <SkeletonText paragraph />
+                            {/each}
+                        {:else}
+                            {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.line_number)}
+                                <div class="transcript-line-container">
+                                    <span
+                                        class="transcript-line-header"
+                                        on:click={() => {
+                                            handleTranscriptLineHeaderClick(
+                                                transcriptLine.line_number,
+                                            );
+                                        }}
+                                    >
+                                        {transcriptLine.speaker}
+                                        <strong>•</strong>
+                                        {transcriptLine.timestamp}
+                                    </span>
+                                    <span>
+                                        {@html highlightEntity(
+                                            transcriptLine.statement,
+                                            entity,
+                                        )}
+                                    </span>
+                                </div>
+                            {/each}
+                        {/if}
+                    </div>
                 </div>
-            </div>
+            {/if}
         {/if}
     {/each}
 </div>

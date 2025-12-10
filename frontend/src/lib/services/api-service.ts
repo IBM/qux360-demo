@@ -1,4 +1,5 @@
 import type {
+    EntityAnonymizationResponse,
     IdentifyParticipantResponse,
     SpeakerAnonymizationResponse,
     TranscriptFileI,
@@ -177,6 +178,45 @@ class ApiService {
             return {
                 error: "An error occurred while anonymizing the speakers",
                 speakers_anonymization_map: null,
+            };
+        }
+    }
+
+    public async getEntityAnonymizationMap(
+        fileId: number,
+    ): Promise<EntityAnonymizationResponse> {
+        try {
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/entities_anonymization_map/${fileId}`,
+                {
+                    method: APIMethodsType.GET,
+                    headers: this.getHeaders(),
+                },
+            );
+
+            if (!response.ok) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Entity anonymization failed",
+                    subtitle: `HTTP error! Status: ${response.status}`,
+                });
+            }
+
+            const data: EntityAnonymizationResponse = await response.json();
+
+            if (data.error) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Entity anonymization failed",
+                    subtitle: data.error,
+                });
+            }
+
+            return data;
+        } catch (error) {
+            return {
+                error: "An error occurred while anonymizing the entities",
+                entities_anonymization_map: null,
             };
         }
     }

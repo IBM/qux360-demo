@@ -12,6 +12,7 @@ import {
 import {
     TranscriptState,
     ValidationStatus,
+    type EntityAnonymizationResponse,
     type IdentifyParticipantResponse,
     type IntervieweeValidation,
     type SpeakerAnonymizationResponse,
@@ -232,6 +233,38 @@ const createStudiesStore = () => {
             const updatedTranscriptFile: TranscriptFileI = {
                 ...transcriptFile,
                 speaker_anonymization_map: data.speakers_anonymization_map,
+            };
+
+            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+        },
+        runTranscriptEntityAnonymization: async (
+            study: StudyI,
+            transcriptFileId: number,
+        ) => {
+            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
+                (transcriptFile: TranscriptFileI) =>
+                    transcriptFile.id === transcriptFileId,
+            );
+            if (transcriptFileIndex === -1) {
+                return;
+            }
+            const transcriptFile: TranscriptFileI =
+                study.transcriptFiles[transcriptFileIndex];
+
+            const data: EntityAnonymizationResponse =
+                await apiService.getEntityAnonymizationMap(transcriptFile.id!);
+
+            const updatedTranscriptFile: TranscriptFileI = {
+                ...transcriptFile,
+                entity_anonymization_map: data.entities_anonymization_map || {},
             };
 
             study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
