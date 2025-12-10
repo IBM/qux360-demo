@@ -1,5 +1,7 @@
+from typing import Any
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import tempfile
 from qux360.core import Interview
 from mellea import MelleaSession
@@ -31,7 +33,6 @@ logging.getLogger("qux360").setLevel(logging.INFO)
 
 m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
-i: Interview
 # Allow frontend (Svelte) to access backend
 app.add_middleware(
     CORSMiddleware,
@@ -95,6 +96,17 @@ def get_file_from_db(conn: sqlite3.Connection, file_id: int):
         return {"filename": row[0], "content": row[1]}
     return None
 
+
+def write_temp_file(row: dict[str, Any]) -> str:
+    # write to a temporary file for qux360's Interview which expects a path
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    return tmp_path
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
@@ -122,22 +134,29 @@ async def identify_participant(request: FileIdRequest):
     print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
-        return {"speakers": [], "participant": "", "error": "file not found"}
+        return {
+            "error": "file not found",
+            "speakers": [],
+            "participant": "",
+            "validation": None,
+        }
 
-    # write to a temporary file for qux360's Interview which expects a path
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
     try:
         i = Interview(tmp_path)
-        speakers = i.get_speakers()
-        interiewee = i.identify_interviewee(m).result
-        return {"message": "Speakers found (participant identified)", "speakers": speakers, "participant": interiewee}
+        speakers: list[str] = i.get_speakers()
+        interviewee = i.identify_interviewee(m)
+        participant = interviewee.result
+        return {
+            "message": "Speakers found (participant identified)",
+            "speakers": speakers,
+            "participant": participant,
+            "validation": interviewee.validation,
+        }
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
-        return {"speakers": [], "participant": "", "error": str(e)}
+        return {"error": str(e), "speakers": [], "participant": "", "validation": None}
 
 
 @app.post("/anonymization_map")
@@ -148,10 +167,7 @@ async def get_speakers_anonymization_map(request: FileIdRequest):
     if not row:
         return {"anonymization_map": {}, "error": "file not found"}
 
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
     try:
         i = Interview(tmp_path)
@@ -228,3 +244,27 @@ async def get_entities_anonymization_map(request: FileIdRequest):
         return {"entities_anonymization_map": {}, "error": str(e)}
 
 
+@app.get("/transcript/{file_id}")
+async def get_transcript(file_id: int):
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {
+            "error": "file not found",
+        }
+
+    tmp_path = write_temp_file(row)
+
+    try:
+        i = Interview(tmp_path)
+        transcript_raw = i.transcript_raw
+        selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
+        data = [
+            {"line_number": idx + 1, **row}
+            for idx, row in enumerate(selected_df.to_dict(orient="records"))
+        ]
+
+        return JSONResponse(content=data)
+
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"error": str(e)}
