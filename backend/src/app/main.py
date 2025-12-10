@@ -206,7 +206,7 @@ async def anonymize_speakers(speakers: SpeakersPayload):
     
 
 @app.post("/entitites_anonymization_map")
-async def get_speakers_anonymization_map(request: FileIdRequest):
+async def get_entities_anonymization_map(request: FileIdRequest):
     file_id = request.id
     print(f"🔍 Building entities anonymization map for file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
