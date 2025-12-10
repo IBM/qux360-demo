@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from typing import Any
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +11,11 @@ from dotenv import load_dotenv
 import logging
 import os
 import sqlite3
-from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel
 from typing import Dict, Any
+import pandas as pd
+import io
 
 app = FastAPI()
 load_dotenv()
@@ -44,6 +46,13 @@ app.add_middleware(
 
 DB_PATH = Path.cwd().joinpath("uploads.db")
 
+
+class FilePathRequest(BaseModel):
+    path: str
+
+
+class FileIdRequest(BaseModel):
+    id: int
 
 class SpeakersPayload(BaseModel):
     fileId: int
@@ -121,16 +130,8 @@ async def upload_file(file: UploadFile = File(...)):
         return {"error": str(e)}
 
 
-class FilePathRequest(BaseModel):
-    path: str
-
-
-class FileIdRequest(BaseModel):
-    id: int
-
-@app.post("/identify_participant")
-async def identify_participant(request: FileIdRequest):
-    file_id = request.id
+@app.get("/identify_participant/{file_id}")
+async def identify_participant(file_id: int):
     print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
@@ -159,23 +160,22 @@ async def identify_participant(request: FileIdRequest):
         return {"error": str(e), "speakers": [], "participant": "", "validation": None}
 
 
-@app.post("/anonymization_map")
-async def get_speakers_anonymization_map(request: FileIdRequest):
-    file_id = request.id
-    print(f"🔍 Building anonymization map for file id: {file_id}")
+@app.get("/speakers_anonymization_map/{file_id}")
+async def get_speakers_anonymization_map(file_id: int):
+    print(f"🔍 Building speakers anonymization map for file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
-        return {"anonymization_map": {}, "error": "file not found"}
+        return {"speakers_anonymization_map": {}, "error": "file not found"}
 
     tmp_path = write_temp_file(row)
 
     try:
         i = Interview(tmp_path)
         map = i.anonymize_speakers_generic()
-        return {"message": "Anonymization map", "anonymization_map": map}
+        return {"message": "Speakers Anonymization map", "speakers_anonymization_map": map}
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
-        return {"anonymization_map": {}, "error": str(e)}
+        return {"speakers_anonymization_map": {}, "error": str(e)}
 
 
 @app.post("/anonymize_speakers")
@@ -221,9 +221,8 @@ async def anonymize_speakers(speakers: SpeakersPayload):
         return {"anonymized_speakers_map": "", "error": str(e)}
     
 
-@app.post("/entities_anonymization_map")
-async def get_entities_anonymization_map(request: FileIdRequest):
-    file_id = request.id
+@app.get("/entities_anonymization_map/{file_id}")
+async def get_entities_anonymization_map(file_id: int):
     print(f"🔍 Building entities anonymization map for file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
@@ -264,6 +263,49 @@ async def get_transcript(file_id: int):
         ]
 
         return JSONResponse(content=data)
+
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"error": str(e)}
+
+
+def json_to_xlsx_bytes(records: list[dict]) -> bytes:
+    """
+    Convert a list of dictionaries into an XLSX file using pandas.
+    Returns the XLSX data as bytes.
+    """
+    if not records:
+        raise ValueError("No data provided to generate XLSX.")
+
+    df = pd.DataFrame(records)
+
+    buffer = io.BytesIO()
+
+    # Explicitly use openpyxl engine for writing
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Transcript")
+
+    return buffer.getvalue()
+
+@app.post("/update_transcript")
+async def update_transcript(file_id: int, content: list[dict]):
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {
+            "error": "file not found",
+        }
+
+    # Convert to XLSX bytes
+    try:
+        xlsx_bytes = json_to_xlsx_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Update record in DB
+    try:
+        file_id = update_file_in_db(db_conn, file_id, xlsx_bytes)
+        print(f"✅ File updated in DB with id: {file_id}")
+        return {"message": "Transcript updated", "updated_transcript": file_id}
 
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
