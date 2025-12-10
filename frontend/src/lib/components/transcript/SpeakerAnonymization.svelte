@@ -2,7 +2,9 @@
     import {
         PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
         READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
+        READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
         RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
+        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
     } from "$lib/common";
     import { type SpeakerAnonymizationMap } from "$lib/models";
     import {
@@ -55,7 +57,7 @@
 
 <div class="speaker-anonymization-container">
     <h3 class="transcript-section-title">Speaker anonymization</h3>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+    {#if !$selectedTranscriptStore || [READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS.status, RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status, PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status].includes($selectedTranscriptStore.status.status)}
         <p class="confirm-participant-text">
             Confirm participant to start anonymization.
         </p>

@@ -139,7 +139,7 @@ export interface IdentifyParticipantResponse {
 export interface SpeakerAnonymizationResponse {
     message?: string;
     error?: string;
-    anonymization_map: SpeakerAnonymizationMap | null;
+    speakers_anonymization_map: SpeakerAnonymizationMap | null;
 }
 
 export interface TranscriptLineI {

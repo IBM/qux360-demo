@@ -231,7 +231,7 @@ const createStudiesStore = () => {
 
             const updatedTranscriptFile: TranscriptFileI = {
                 ...transcriptFile,
-                speaker_anonymization_map: data.anonymization_map,
+                speaker_anonymization_map: data.speakers_anonymization_map,
             };
 
             study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;

@@ -104,15 +104,12 @@ class ApiService {
     public async identifyParticipant(
         fileId: number,
     ): Promise<IdentifyParticipantResponse> {
-        const body: string = JSON.stringify({ id: fileId });
-
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/identify_participant`,
+                `${this.BACKEND_API_URL}/identify_participant/${fileId}`,
                 {
-                    method: APIMethodsType.POST,
+                    method: APIMethodsType.GET,
                     headers: this.getHeaders(),
-                    body: body,
                 },
             );
 
@@ -148,15 +145,12 @@ class ApiService {
     public async getSpeakerAnonymizationMap(
         fileId: number,
     ): Promise<SpeakerAnonymizationResponse> {
-        const body: string = JSON.stringify({ id: fileId });
-
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/anonymization_map`,
+                `${this.BACKEND_API_URL}/speakers_anonymization_map/${fileId}`,
                 {
-                    method: APIMethodsType.POST,
+                    method: APIMethodsType.GET,
                     headers: this.getHeaders(),
-                    body: body,
                 },
             );
 
@@ -182,7 +176,7 @@ class ApiService {
         } catch (error) {
             return {
                 error: "An error occurred while anonymizing the speakers",
-                anonymization_map: null,
+                speakers_anonymization_map: null,
             };
         }
     }
