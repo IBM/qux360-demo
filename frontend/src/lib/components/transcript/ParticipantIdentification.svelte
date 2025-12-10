@@ -1,11 +1,17 @@
 <script lang="ts">
     import {
         AILabel,
+        PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
         RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
     } from "$lib/common";
-    import { ValidationStatus, type DropdownItem } from "$lib/models";
-    import { selectedTranscriptStore } from "$lib/stores";
-    import { Dropdown, DropdownSkeleton } from "carbon-components-svelte";
+    import { type DropdownItem } from "$lib/models";
+    import {
+        selectedStudyIdStore,
+        selectedTranscriptFileIdStore,
+        selectedTranscriptStore,
+        studiesStore,
+    } from "$lib/stores";
+    import { Dropdown, DropdownSkeleton, Link } from "carbon-components-svelte";
 
     let speakersDropdownItems: DropdownItem[] = [];
     let speakerSelectedId: number = 0;
@@ -24,10 +30,20 @@
             speakersDropdownItems.find((speakerDropdownItem: DropdownItem) => {
                 return (
                     speakerDropdownItem.text ===
-                    $selectedTranscriptStore.participant
+                    $selectedTranscriptStore.participant.name
                 );
             })?.id || 0;
     }
+
+    const updateParticipantExplanation = (): void => {
+        console.log("updateParticipantExplanation");
+        if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
+            studiesStore.updateParticipantExplanation(
+                $selectedStudyIdStore,
+                $selectedTranscriptFileIdStore,
+            );
+        }
+    };
 </script>
 
 <div class="participant-identification-container">
@@ -40,20 +56,41 @@
             modelLink=""
         />
     </div>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS}
+    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status}
         <DropdownSkeleton />
     {:else if $selectedTranscriptStore.validation}
-        <Dropdown
-            size="xl"
-            selectedId={speakerSelectedId}
-            items={speakersDropdownItems}
-            invalid={$selectedTranscriptStore.validation.status !==
-                ValidationStatus.Ok}
-        />
+        <div class="participant-dropdown-container">
+            <Dropdown
+                size="xl"
+                selectedId={speakerSelectedId}
+                items={speakersDropdownItems}
+                invalid={$selectedTranscriptStore.status.status ===
+                    PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+                on:select={updateParticipantExplanation}
+            />
+            {#if $selectedTranscriptStore.participant.showExplanation}
+                <div class="participant-explanation-container">
+                    {#if $selectedTranscriptStore.status.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+                        <strong>Needs review:</strong>
+                    {/if}
+                    <span>
+                        {$selectedTranscriptStore.participant.explanation}
+                    </span>
+                    <Link
+                        class="dismiss-explanation-link"
+                        on:click={updateParticipantExplanation}
+                    >
+                        Dismiss
+                    </Link>
+                </div>
+            {/if}
+        </div>
     {/if}
 </div>
 
 <style lang="scss">
+    @use "@carbon/type";
+
     .participant-identification-container {
         display: flex;
         flex-direction: column;
@@ -64,5 +101,20 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    .participant-dropdown-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .participant-explanation-container {
+        @include type.type-style("label-01");
+        line-height: 1rem;
+    }
+
+    :global(.dismiss-explanation-link) {
+        cursor: pointer;
     }
 </style>

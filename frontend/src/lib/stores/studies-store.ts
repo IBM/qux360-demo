@@ -13,6 +13,7 @@ import {
     TranscriptState,
     ValidationStatus,
     type IdentifyParticipantResponse,
+    type IntervieweeValidation,
     type SpeakerAnonymizationResponse,
     type StudyI,
     type StudyStatusI,
@@ -41,12 +42,13 @@ const createStudiesStore = () => {
 
         let participantReviewCount: number = transcripts.filter(
             (t: TranscriptFileI) =>
-                t.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
+                t.status.status ===
+                PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status,
         ).length;
 
         let topicReviewCount: number = transcripts.filter(
             (t: TranscriptFileI) =>
-                t.status === TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS,
+                t.status.status === TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS.status,
         ).length;
 
         let descriptionParts: string[] = [];
@@ -68,6 +70,25 @@ const createStudiesStore = () => {
         };
     };
 
+    const getParticipantExplanation = (
+        participantName: string,
+        validation: IntervieweeValidation | null,
+    ): string => {
+        if (!validation) {
+            return "";
+        } else {
+            let participantExplanation: string = "";
+            if (validation.status === ValidationStatus.Ok) {
+                participantExplanation = `AI identified ${participantName} as the participant based on conversation patterns and content, and they have ≥60% of the words in the transcript.`;
+            } else if (validation.status === ValidationStatus.Check) {
+                participantExplanation = `AI identified ${participantName} as the participant based on conversation patterns and content, and they have 50-60% of the words in the transcript.`;
+            } else if (validation.status === ValidationStatus.Iffy) {
+                participantExplanation = `AI identified ${participantName} as the participant based on conversation patterns and content, and they have <50% of the words in the transcript.`;
+            }
+            return participantExplanation;
+        }
+    };
+
     return {
         subscribe,
         refresh: () => set(studiesCacheService.getAllStudies()),
@@ -77,8 +98,8 @@ const createStudiesStore = () => {
                     study.transcriptFiles[i];
 
                 if (
-                    transcriptFile.status ===
-                    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS
+                    transcriptFile.status.status ===
+                    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS.status
                 ) {
                     transcriptFile.status =
                         RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS;
@@ -105,7 +126,14 @@ const createStudiesStore = () => {
 
                     const updatedTranscriptFile: TranscriptFileI = {
                         ...transcriptFile,
-                        participant: data.participant,
+                        participant: {
+                            name: data.participant,
+                            explanation: getParticipantExplanation(
+                                data.participant,
+                                data.validation,
+                            ),
+                            showExplanation: true,
+                        },
                         speakers: data.speakers,
                         validation: data.validation,
                     };
@@ -351,6 +379,55 @@ const createStudiesStore = () => {
                         transcriptFiles: updatedFiles,
                     };
                     studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        updateParticipantExplanation: (
+            studyId: string,
+            transcriptFileId: number,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            if (!t.validation) {
+                                return t;
+                            } else {
+                                return {
+                                    ...t,
+                                    status: READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
+                                    validation: {
+                                        status: ValidationStatus.Ok,
+                                        explanation: "Reviewed by the user",
+                                        errors: t.validation.errors,
+                                        method: t.validation.method,
+                                        metadata: t.validation.metadata,
+                                        checks: t.validation.checks,
+                                        informational:
+                                            t.validation.informational,
+                                    },
+                                    participant: {
+                                        ...t.participant,
+                                        explanation: "Reviewed by the user",
+                                        showExplanation: false,
+                                    },
+                                };
+                            }
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
                     return updatedStudy;
                 });
             });

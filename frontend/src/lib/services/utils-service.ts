@@ -90,7 +90,11 @@ class UtilsService {
             type: file.type,
             status: READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
             speakers: [],
-            participant: "",
+            participant: {
+                name: "",
+                explanation: "",
+                showExplanation: false,
+            },
             validation: null,
             speaker_anonymization_map: null,
             entity_anonymization_map: {},
