@@ -39,6 +39,11 @@ In case you prefer to install it manually, the `requirements.txt` file is provid
 pip install -r requirements.txt
 ```
 
+Install Spacy's model
+```bash
+spacy download en_core_web_sm
+```
+
 To launch the server:
 ```bash
 uvicorn main:app --reload

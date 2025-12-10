@@ -203,3 +203,28 @@ async def anonymize_speakers(speakers: SpeakersPayload):
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"anonymized_speakers_map": "", "error": str(e)}
+    
+
+@app.post("/entitites_anonymization_map")
+async def get_speakers_anonymization_map(request: FileIdRequest):
+    file_id = request.id
+    print(f"🔍 Building entities anonymization map for file id: {file_id}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"entities_anonymization_map": {}, "error": "file not found"}
+
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    try:
+        i = Interview(tmp_path)
+        entities = i.detect_entities()
+        map = i.build_replacement_map(entities)
+        return {"message": "Entities anonymization map", "entities_anonymization_map": map}
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"entities_anonymization_map": {}, "error": str(e)}
+
+
