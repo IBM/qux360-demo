@@ -205,7 +205,7 @@ async def anonymize_speakers(speakers: SpeakersPayload):
         return {"anonymized_speakers_map": "", "error": str(e)}
     
 
-@app.post("/entitites_anonymization_map")
+@app.post("/entities_anonymization_map")
 async def get_entities_anonymization_map(request: FileIdRequest):
     file_id = request.id
     print(f"🔍 Building entities anonymization map for file id: {file_id}")
