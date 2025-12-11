@@ -60,19 +60,21 @@
                             handleTranscriptFileItemClick(transcriptFile);
                         }}
                     >
-                        <span
+                        <div
                             class="transcript-file-name"
                             class:transcript-file-needs-review={transcriptFile
                                 .status.state === TranscriptState.Review}
+                            use:truncate
                         >
                             {transcriptFile.name}
-                        </span>
-                        {#if transcriptFile.status.state === TranscriptState.Review || transcriptFile.status.state === TranscriptState.Finish}
-                            <svelte:component
-                                this={transcriptFile.status.icon}
-                                style="fill: {transcriptFile.status.iconColor};"
-                            />
-                        {/if}
+                        </div>
+                        <svelte:component
+                            this={transcriptFile.status.icon}
+                            style={`
+                                fill: {transcriptFile.status.iconColor};
+                                flex-shrink: 0;
+                            `}
+                        />
                     </div>
                 {/each}
             </Stack>
@@ -145,6 +147,8 @@
 
     .transcript-file-name {
         @include type.type-style("body-compact-02");
+        width: unset;
+        max-width: 100%;
     }
 
     .transcript-file-needs-review {
