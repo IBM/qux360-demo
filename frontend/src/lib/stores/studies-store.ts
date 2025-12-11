@@ -153,6 +153,25 @@ const createStudiesStore = () => {
                 }
             }
         },
+        updateTranscriptFiles: async (
+            studyId: string,
+            newTranscriptFiles: TranscriptFileI[],
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: newTranscriptFiles,
+                    };
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
         add: async (study: StudyI): Promise<void> => {
             const { successes, errors } = await apiService.uploadFiles(
                 study.transcriptFiles,
@@ -196,6 +215,8 @@ const createStudiesStore = () => {
             });
         },
         update: async (updatedStudy: StudyI): Promise<void> => {
+            updatedStudy.status = computeStudyStatus(updatedStudy);
+
             await studiesCacheService.update(updatedStudy);
             update((studies: StudyI[]) =>
                 studies.map((s: StudyI) =>

@@ -1,6 +1,26 @@
 <script lang="ts">
-    import { TranscriptState, type TranscriptFileI } from "$lib/models";
-    import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
+    import {
+        READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
+        UploadTranscriptFiles,
+    } from "$lib/common";
+    import {
+        TranscriptState,
+        UploadedTranscriptFileStatus,
+        type TranscriptFileI,
+        type UploadedTranscriptFileI,
+        type UploadTranscriptFileResultI,
+        type UploadTranscriptFileSuccessI,
+    } from "$lib/models";
+    import { apiService, utilsService } from "$lib/services";
+    import { selectedStudyIdStore, studiesStore } from "$lib/stores";
+    import {
+        Button,
+        Checkbox,
+        Modal,
+        Search,
+        Stack,
+    } from "carbon-components-svelte";
+    import { onMount } from "svelte";
     import { TranscriptCard } from ".";
 
     export let transcriptFiles: TranscriptFileI[];
@@ -16,6 +36,18 @@
     let allSelected: boolean = false;
     let noneSelected: boolean = false;
     let mixedSelection: boolean = false;
+
+    let isUploadTranscriptsModalOpen: boolean = false;
+
+    let uploadedTranscriptFiles: UploadedTranscriptFileI[] = [];
+
+    let hasValidFiles: boolean = false;
+
+    $: hasValidFiles = uploadedTranscriptFiles.some(
+        (uploadedTranscriptFile) =>
+            uploadedTranscriptFile.status ===
+            UploadedTranscriptFileStatus.Success,
+    );
 
     $: filteredTranscripts = transcriptFiles.filter(
         (transcript: TranscriptFileI) => {
@@ -47,8 +79,20 @@
 
     $: mixedSelection = !allSelected && !noneSelected;
 
+    onMount(() => {
+        uploadedTranscriptFiles = transcriptFiles.map(
+            (transcriptFile: TranscriptFileI) => {
+                return {
+                    id: utilsService.getUniqueId(),
+                    file: transcriptFile.file,
+                    status: UploadedTranscriptFileStatus.Success,
+                };
+            },
+        );
+    });
+
     const handleUploadTranscriptsButtonClick = (): void => {
-        // TODO: Add functionality
+        isUploadTranscriptsModalOpen = true;
     };
 
     const handleSelectAll = (): void => {
@@ -65,6 +109,86 @@
 
     const updateTranscriptSelection = (name: string, value: boolean): void => {
         checkedTranscriptsMap[name] = value;
+    };
+
+    const handleCancelModalButtonClick = (): void => {
+        isUploadTranscriptsModalOpen = false;
+    };
+
+    const handleUpdateModalButtonClick = async (): Promise<void> => {
+        const newFiles: UploadedTranscriptFileI[] =
+            uploadedTranscriptFiles.filter(
+                (u: UploadedTranscriptFileI) =>
+                    u.status === UploadedTranscriptFileStatus.Success &&
+                    !transcriptFiles.some((t) => t.file.name === u.file.name),
+            );
+
+        const removedFiles: TranscriptFileI[] = transcriptFiles.filter(
+            (t: TranscriptFileI) =>
+                !uploadedTranscriptFiles.some(
+                    (u: UploadedTranscriptFileI) => u.file.name === t.file.name,
+                ),
+        );
+
+        const existingFiles: TranscriptFileI[] = transcriptFiles.filter(
+            (t: TranscriptFileI) => {
+                return !removedFiles.some((r: TranscriptFileI) => {
+                    if (t.id && r.id) {
+                        return t.id === r.id;
+                    }
+
+                    return t.name === r.name;
+                });
+            },
+        );
+
+        let uploadedResults: UploadTranscriptFileResultI;
+        if (newFiles.length > 0) {
+            uploadedResults = await apiService.uploadFiles(
+                newFiles.map((u: UploadedTranscriptFileI) =>
+                    utilsService.getTranscriptFile(u.file),
+                ),
+            );
+        } else {
+            uploadedResults = { successes: [], errors: [] };
+        }
+
+        const newTranscriptFiles: TranscriptFileI[] =
+            uploadedResults.successes.map((s: UploadTranscriptFileSuccessI) => {
+                const original: UploadedTranscriptFileI = newFiles.find(
+                    (u: UploadedTranscriptFileI) => u.file.name === s.filename,
+                )!;
+                return {
+                    id: s.fileId,
+                    name: s.filename,
+                    file: original.file,
+                    size: original.file.size,
+                    type: original.file.type,
+                    status: READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
+                    speakers: [],
+                    participant: {
+                        name: "",
+                        explanation: "",
+                        showExplanation: false,
+                    },
+                    validation: null,
+                    speaker_anonymization_map: null,
+                    entity_anonymization_map: {},
+                };
+            });
+
+        const updatedTranscriptFiles: TranscriptFileI[] = [
+            ...existingFiles,
+            ...newTranscriptFiles,
+        ];
+        if ($selectedStudyIdStore) {
+            studiesStore.updateTranscriptFiles(
+                $selectedStudyIdStore,
+                updatedTranscriptFiles,
+            );
+        }
+
+        isUploadTranscriptsModalOpen = false;
     };
 </script>
 
@@ -150,6 +274,19 @@
         </Stack>
     {/if}
 </div>
+
+<Modal
+    bind:open={isUploadTranscriptsModalOpen}
+    modalHeading="Update study"
+    secondaryButtonText="Cancel"
+    primaryButtonText="Update"
+    on:click:button--secondary={handleCancelModalButtonClick}
+    on:click:button--primary={async () => {
+        await handleUpdateModalButtonClick();
+    }}
+>
+    <UploadTranscriptFiles bind:uploadedTranscriptFiles />
+</Modal>
 
 <style lang="scss">
     .transcripts-tab-content-container {
