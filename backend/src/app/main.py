@@ -87,11 +87,11 @@ def save_file_to_db(conn: sqlite3.Connection, filename: str, content: bytes) -> 
     return cur.lastrowid
 
 
-def update_file_in_db(conn: sqlite3.Connection, file_id: int, content: bytes) -> int:
+def update_file_in_db(conn: sqlite3.Connection, file_id: int, filename: str, content: bytes) -> int:
     cur = conn.cursor()
     cur.execute(
-        "UPDATE uploads SET content = ? WHERE id = ?",
-        (sqlite3.Binary(content), file_id),
+        "UPDATE uploads SET content = ?, filename = ? WHERE id = ?",
+        (sqlite3.Binary(content), filename, file_id),
     )
     conn.commit()
     return file_id
@@ -212,7 +212,8 @@ async def anonymize_speakers(speakers: SpeakersPayload):
 
         with open(updated_tmp_path, "rb") as f:
             updated_content = f.read()
-            file_id = update_file_in_db(db_conn, file_id, updated_content)
+            filename = Path(row["filename"]).stem + ".xlsx"
+            file_id = update_file_in_db(db_conn, file_id, filename, updated_content)
             print(f"✅ File updated in DB with id: {file_id}")
             return {"message": "Speakers anonymized", "anonymized_speakers_map": anonymized_map}
 
@@ -303,7 +304,8 @@ async def update_transcript(file_id: int, content: list[dict]):
 
     # Update record in DB
     try:
-        file_id = update_file_in_db(db_conn, file_id, xlsx_bytes)
+        filename = Path(row["filename"]).stem + ".xlsx"
+        file_id = update_file_in_db(db_conn, file_id, filename, xlsx_bytes)
         print(f"✅ File updated in DB with id: {file_id}")
         return {"message": "Transcript updated", "updated_transcript": file_id}
 
