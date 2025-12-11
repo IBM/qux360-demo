@@ -438,6 +438,10 @@
         line-height: 1.125rem;
     }
 
+    .transcript-line-header {
+        width: fit-content;
+    }
+
     .transcript-line-header:hover {
         cursor: pointer;
         opacity: 0.5;
