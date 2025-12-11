@@ -71,7 +71,7 @@
                         <svelte:component
                             this={transcriptFile.status.icon}
                             style={`
-                                fill: {transcriptFile.status.iconColor};
+                                fill: ${transcriptFile.status.iconColor};
                                 flex-shrink: 0;
                             `}
                         />
