@@ -349,7 +349,6 @@ async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: boo
         tmp_path = tmp.name
 
     try:
-        litellm._turn_on_debug()
         i = Interview(tmp_path)
         i.identify_interviewee(m)
         topics_result = i.suggest_topics_top_down(m, top_n, explain, interview_context)
