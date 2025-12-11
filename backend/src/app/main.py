@@ -341,7 +341,7 @@ async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: boo
     print(f"🔍 Getting suggested topics for interview with file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
-        return {"interview_topics": [], "error": "file not found"}
+        return {"interview_topics_result": [], "error": "file not found"}
 
     suffix = Path(row["filename"]).suffix or ".xlsx"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -352,8 +352,8 @@ async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: boo
         litellm._turn_on_debug()
         i = Interview(tmp_path)
         i.identify_interviewee(m)
-        topics = i.suggest_topics_top_down(m, top_n, explain, interview_context)
-        return {"message": "Suggested topics for interview", "interview_topics": topics}
+        topics_result = i.suggest_topics_top_down(m, top_n, explain, interview_context)
+        return {"message": "Suggested topics result for interview", "interview_topics_result": topics_result}
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
-        return {"interview_topics": [], "error": str(e)}
+        return {"interview_topics_result": [], "error": str(e)}
