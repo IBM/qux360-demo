@@ -7,7 +7,7 @@
     } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft } from "carbon-icons-svelte";
-    import { TranscriptInformation, TranscriptLines } from ".";
+    import { Analysis, TranscriptInformation, TranscriptLines } from ".";
 
     const tabs: TabI[] = [
         {
@@ -47,6 +47,8 @@
         <div class="left-content-container">
             {#if activeTab === TranscriptContentTabID.TranscriptInformation}
                 <TranscriptInformation />
+            {:else if activeTab === TranscriptContentTabID.Analysis}
+                <Analysis />
             {/if}
         </div>
         <div class="right-content-container">
