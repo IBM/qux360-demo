@@ -7,7 +7,7 @@
     } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft } from "carbon-icons-svelte";
-    import { TranscriptInformation } from ".";
+    import { TranscriptInformation, TranscriptLines } from ".";
 
     const tabs: TabI[] = [
         {
@@ -43,9 +43,16 @@
 
     <Tabs {tabs} bind:activeTab />
 
-    {#if activeTab === TranscriptContentTabID.TranscriptInformation}
-        <TranscriptInformation />
-    {/if}
+    <div class="transcript-tab-content-container">
+        <div class="left-content-container">
+            {#if activeTab === TranscriptContentTabID.TranscriptInformation}
+                <TranscriptInformation />
+            {/if}
+        </div>
+        <div class="right-content-container">
+            <TranscriptLines />
+        </div>
+    </div>
 {/if}
 
 <style lang="scss">
@@ -67,5 +74,40 @@
     .transcript-content-header {
         @include type.type-style("heading-04");
         line-height: 2.25rem;
+    }
+
+    .transcript-tab-content-container {
+        flex: 1;
+        display: flex;
+        overflow: auto;
+    }
+
+    .left-content-container,
+    .right-content-container {
+        flex: 1;
+    }
+
+    .left-content-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        padding-left: 2rem;
+        padding-right: 1rem;
+        overflow: scroll;
+    }
+
+    .right-content-container {
+        display: flex;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        padding-left: 1rem;
+        padding-right: 2rem;
+    }
+
+    :global(.transcript-section-title) {
+        @include type.type-style("heading-03");
+        line-height: 1.75rem;
     }
 </style>
