@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 import tempfile
 from qux360.core import Interview
 from mellea import MelleaSession
-from mellea.backends.litellm import LiteLLMBackend
+from mellea.backends.litellm import LiteLLMBackend, litellm
 from dotenv import load_dotenv
 import logging
 import os
@@ -87,11 +87,11 @@ def save_file_to_db(conn: sqlite3.Connection, filename: str, content: bytes) -> 
     return cur.lastrowid
 
 
-def update_file_in_db(conn: sqlite3.Connection, file_id: int, content: bytes) -> int:
+def update_file_in_db(conn: sqlite3.Connection, file_id: int, filename: str, content: bytes) -> int:
     cur = conn.cursor()
     cur.execute(
-        "UPDATE uploads SET content = ? WHERE id = ?",
-        (sqlite3.Binary(content), file_id),
+        "UPDATE uploads SET content = ?, filename = ? WHERE id = ?",
+        (sqlite3.Binary(content), filename, file_id),
     )
     conn.commit()
     return file_id
@@ -115,7 +115,6 @@ def write_temp_file(row: dict[str, Any]) -> str:
 
     return tmp_path
 
-
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
@@ -129,6 +128,29 @@ async def upload_file(file: UploadFile = File(...)):
         print(f"❌ Upload failed: {e}")
         return {"error": str(e)}
 
+'''
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Save uploaded file and return its file ID in the DB"""
+    try:
+        content = await file.read()
+        i = Interview(content)
+        transcript_raw = i.transcript_raw
+        selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
+        data = [
+            {"line_number": idx + 1, **row}
+            for idx, row in enumerate(selected_df.to_dict(orient="records"))
+        ]
+
+        transcript_json = JSONResponse(content=data)
+        print(f"📁 Uploading file: {file.filename}, size: {len(transcript_json)} bytes")
+        file_id = save_file_to_db(db_conn, file.filename, transcript_json)
+        print(f"✅ File saved in DB with id: {file_id}")
+        return {"file_id": file_id}
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+        return {"error": str(e)}
+'''
 
 @app.get("/identify_participant/{file_id}")
 async def identify_participant(file_id: int):
@@ -212,7 +234,8 @@ async def anonymize_speakers(speakers: SpeakersPayload):
 
         with open(updated_tmp_path, "rb") as f:
             updated_content = f.read()
-            file_id = update_file_in_db(db_conn, file_id, updated_content)
+            filename = Path(row["filename"]).stem + ".xlsx"
+            file_id = update_file_in_db(db_conn, file_id, filename, updated_content)
             print(f"✅ File updated in DB with id: {file_id}")
             return {"message": "Speakers anonymized", "anonymized_speakers_map": anonymized_map}
 
@@ -303,10 +326,33 @@ async def update_transcript(file_id: int, content: list[dict]):
 
     # Update record in DB
     try:
-        file_id = update_file_in_db(db_conn, file_id, xlsx_bytes)
+        filename = Path(row["filename"]).stem + ".xlsx"
+        file_id = update_file_in_db(db_conn, file_id, filename, xlsx_bytes)
         print(f"✅ File updated in DB with id: {file_id}")
         return {"message": "Transcript updated", "updated_transcript": file_id}
 
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"error": str(e)}
+
+
+@app.get("/interview_topics/{file_id}")
+async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: bool = True, interview_context: str = "General"):
+    print(f"🔍 Getting suggested topics for interview with file id: {file_id}")
+    row = get_file_from_db(db_conn, file_id)
+    if not row:
+        return {"interview_topics_result": [], "error": "file not found"}
+
+    suffix = Path(row["filename"]).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(row["content"])
+        tmp_path = tmp.name
+
+    try:
+        i = Interview(tmp_path)
+        i.identify_interviewee(m)
+        topics_result = i.suggest_topics_top_down(m, top_n, explain, interview_context)
+        return {"message": "Suggested topics result for interview", "interview_topics_result": topics_result}
+    except Exception as e:
+        print(f"❌ qux360-demo failed: {e}")
+        return {"interview_topics_result": [], "error": str(e)}
