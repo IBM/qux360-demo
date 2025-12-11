@@ -59,6 +59,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        height: 5.25rem;
         padding: 2rem 1rem 1rem;
     }
 
