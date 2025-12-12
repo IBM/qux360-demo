@@ -1,6 +1,7 @@
 <script lang="ts">
     import { AILabel } from "$lib/common";
     import { ContentSwitcher, Switch } from "carbon-components-svelte";
+    import { ApprovedTopics, SuggestedTopics } from "./analysis";
 
     let selectedContentSwitcherIndex: number = 0;
 </script>
@@ -25,10 +26,16 @@
         </Switch>
     </ContentSwitcher>
 
-    {#if selectedContentSwitcherIndex === 0}{:else if selectedContentSwitcherIndex === 1}{/if}
+    {#if selectedContentSwitcherIndex === 0}
+        <ApprovedTopics />
+    {:else if selectedContentSwitcherIndex === 1}
+        <SuggestedTopics />
+    {/if}
 </div>
 
 <style lang="scss">
+    @use "@carbon/type";
+
     .transcript-analysis-container {
         display: flex;
         flex-direction: column;
@@ -39,5 +46,48 @@
         display: flex;
         align-items: center;
         gap: 0.25rem;
+    }
+
+    :global(.topics-label) {
+        @include type.type-style("heading-02");
+    }
+
+    :global(.topic-names-external-container) {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    :global(.topic-names-vertical-line-container) {
+        display: flex;
+    }
+
+    :global(.vertical-line) {
+        width: 1px;
+        height: calc(100% - 9px);
+        background-color: black;
+    }
+
+    :global(.topic-names-internal-container) {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 0.5rem;
+    }
+
+    :global(.topic-name-container) {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    :global(.horizonal-line) {
+        width: 0.75rem;
+        height: 1px;
+        background-color: black;
+    }
+
+    :global(.topic-name-link) {
+        cursor: pointer;
     }
 </style>
