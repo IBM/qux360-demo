@@ -134,9 +134,9 @@ const createStudiesStore = () => {
                                 data.validation,
                             ),
                             showExplanation: true,
+                            validation: data.validation,
                         },
                         speakers: data.speakers,
-                        validation: data.validation,
                     };
 
                     study.transcriptFiles[i] = updatedTranscriptFile;
@@ -449,26 +449,32 @@ const createStudiesStore = () => {
                         study.transcriptFiles.map((t: TranscriptFileI) => {
                             if (t.id !== transcriptFileId) return t;
 
-                            if (!t.validation) {
+                            if (!t.participant.validation) {
                                 return t;
                             } else {
                                 return {
                                     ...t,
                                     status: READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
-                                    validation: {
-                                        status: ValidationStatus.Ok,
-                                        explanation: "Reviewed by the user",
-                                        errors: t.validation.errors,
-                                        method: t.validation.method,
-                                        metadata: t.validation.metadata,
-                                        checks: t.validation.checks,
-                                        informational:
-                                            t.validation.informational,
-                                    },
                                     participant: {
                                         ...t.participant,
                                         explanation: "Reviewed by the user",
                                         showExplanation: false,
+                                        validation: {
+                                            status: ValidationStatus.Ok,
+                                            explanation: "Reviewed by the user",
+                                            errors: t.participant.validation
+                                                .errors,
+                                            method: t.participant.validation
+                                                .method,
+                                            metadata:
+                                                t.participant.validation
+                                                    .metadata,
+                                            checks: t.participant.validation
+                                                .checks,
+                                            informational:
+                                                t.participant.validation
+                                                    .informational,
+                                        },
                                     },
                                 };
                             }

@@ -170,8 +170,8 @@
                         name: "",
                         explanation: "",
                         showExplanation: false,
+                        validation: null,
                     },
-                    validation: null,
                     speaker_anonymization_map: null,
                     entity_anonymization_map: {},
                 };

@@ -76,7 +76,6 @@ class UtilsService {
             status: this.getSerializableTranscriptStatus(transcriptFile.status),
             speakers: transcriptFile.speakers,
             participant: transcriptFile.participant,
-            validation: transcriptFile.validation,
             speaker_anonymization_map: transcriptFile.speaker_anonymization_map,
             entity_anonymization_map: transcriptFile.entity_anonymization_map,
         };
@@ -94,8 +93,8 @@ class UtilsService {
                 name: "",
                 explanation: "",
                 showExplanation: false,
+                validation: null,
             },
-            validation: null,
             speaker_anonymization_map: null,
             entity_anonymization_map: {},
         };
@@ -183,7 +182,6 @@ class UtilsService {
             status: this.getTranscriptStatus(serializableTranscriptFile.status),
             speakers: serializableTranscriptFile.speakers,
             participant: serializableTranscriptFile.participant,
-            validation: serializableTranscriptFile.validation,
             speaker_anonymization_map:
                 serializableTranscriptFile.speaker_anonymization_map,
             entity_anonymization_map:

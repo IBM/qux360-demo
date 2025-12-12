@@ -61,6 +61,7 @@ export interface IdentifiedParticipantI {
     name: string;
     explanation: string;
     showExplanation: boolean;
+    validation: IntervieweeValidation | null;
 }
 
 export interface TranscriptFileI {
@@ -72,7 +73,6 @@ export interface TranscriptFileI {
     status: TranscriptStatusI;
     speakers: string[];
     participant: IdentifiedParticipantI;
-    validation: IntervieweeValidation | null;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
     entity_anonymization_map: EntityAnonymizationMap;
 }
@@ -101,7 +101,6 @@ export interface SerializableTranscriptFileI {
     status: SerializableTranscriptStatusI;
     speakers: string[];
     participant: IdentifiedParticipantI;
-    validation: IntervieweeValidation | null;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
     entity_anonymization_map: EntityAnonymizationMap;
 }

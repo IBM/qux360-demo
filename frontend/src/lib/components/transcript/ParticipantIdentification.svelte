@@ -36,7 +36,6 @@
     }
 
     const updateParticipantExplanation = (): void => {
-        console.log("updateParticipantExplanation");
         if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
             studiesStore.updateParticipantExplanation(
                 $selectedStudyIdStore,
@@ -58,7 +57,7 @@
     </div>
     {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status}
         <DropdownSkeleton />
-    {:else if $selectedTranscriptStore.validation}
+    {:else if $selectedTranscriptStore.participant.validation}
         <div class="participant-dropdown-container">
             <Dropdown
                 size="xl"
