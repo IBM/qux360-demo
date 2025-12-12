@@ -107,8 +107,4 @@
         height: 1px;
         background-color: black;
     }
-
-    :global(.topic-name-link) {
-        cursor: pointer;
-    }
 </style>

@@ -3,12 +3,18 @@
         AILabel,
         Quote,
         RUNNING_TOPIC_EXTRACTION_TRANSCRIPT_STATUS,
+        VALIDATION_STATUS_MAP,
     } from "$lib/common";
-    import { ValidationStatus, type IdentifiedTopicI } from "$lib/models";
+    import {
+        ValidationStatus,
+        type IdentifiedTopicI,
+        type IntervieweeValidation,
+    } from "$lib/models";
     import { selectedTranscriptStore } from "$lib/stores";
-    import { Button, Link, Tag } from "carbon-components-svelte";
-    import { Checkmark, Close } from "carbon-icons-svelte";
+    import { Button, Link, Tag, Tooltip } from "carbon-components-svelte";
+    import { Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
+    import CheckValidation from "./CheckValidation.svelte";
 
     export let identifiedTopics: IdentifiedTopicI[];
 
@@ -41,6 +47,15 @@
             `;
         shadow.appendChild(style);
     };
+
+    const getTopicCheckValidation = (
+        checks: IntervieweeValidation[],
+        method: string,
+    ): IntervieweeValidation | undefined => {
+        return checks.find(
+            (check: IntervieweeValidation) => check.method === method,
+        );
+    };
 </script>
 
 {#if identifiedTopics.length > 0}
@@ -53,9 +68,19 @@
                 {#each identifiedTopics as identifiedTopic, index (index)}
                     <div class="topic-name-container">
                         <div class="horizonal-line"></div>
-                        <Link class="topic-name-link" on:click={() => {}}>
+                        <Link class="link" on:click={() => {}}>
                             {identifiedTopic.topic}
                         </Link>
+                        {#if identifiedTopic.validation}
+                            <svelte:component
+                                this={VALIDATION_STATUS_MAP[
+                                    identifiedTopic.validation.status
+                                ].principalIcon}
+                                style={`
+                                    fill: ${VALIDATION_STATUS_MAP[identifiedTopic.validation.status].iconColor};
+                                `}
+                            />
+                        {/if}
                     </div>
                 {/each}
             </div>
@@ -97,56 +122,122 @@
 </Button>
 
 {#each identifiedTopics as identifiedTopic, index (index)}
-    <div class="topic-card-container">
-        <div class="topic-card-header-container">
-            <div class="topic-card-header-internal-container">
-                <span class="topic-card-title-text">
-                    {identifiedTopic.topic}
-                </span>
-                {#if identifiedTopic.validation?.status === ValidationStatus.Ok}
-                    <Tag type="cyan">High quality</Tag>
-                {:else if identifiedTopic.validation?.status === ValidationStatus.Check}
-                    <Tag class="uncertain-quality-tag">Uncertain quality</Tag>
-                {:else if identifiedTopic.validation?.status === ValidationStatus.Iffy}
-                    <Tag type="red">Low quality</Tag>
-                {/if}
+    {#if identifiedTopic.validation}
+        <div class="topic-card-container">
+            <div class="topic-card-header-container">
+                <div class="topic-card-header-internal-container">
+                    <span class="topic-card-title-text">
+                        {identifiedTopic.topic}
+                    </span>
+                    {#if identifiedTopic.validation.status === ValidationStatus.Ok}
+                        <Tag type="cyan">
+                            {VALIDATION_STATUS_MAP[ValidationStatus.Ok].text}
+                        </Tag>
+                    {:else if identifiedTopic.validation.status === ValidationStatus.Check}
+                        <Tag class="uncertain-quality-tag">
+                            {VALIDATION_STATUS_MAP[ValidationStatus.Check].text}
+                        </Tag>
+                    {:else if identifiedTopic.validation.status === ValidationStatus.Iffy}
+                        <Tag type="red">
+                            {VALIDATION_STATUS_MAP[ValidationStatus.Iffy].text}
+                        </Tag>
+                    {/if}
+                </div>
+
+                <div class="topic-card-header-internal-container">
+                    <Button
+                        kind="tertiary"
+                        icon={Checkmark}
+                        hideTooltip
+                        size="small"
+                        on:click={() => {}}
+                    ></Button>
+                    <Button
+                        kind="tertiary"
+                        icon={Close}
+                        hideTooltip
+                        size="small"
+                        on:click={() => {}}
+                    ></Button>
+                </div>
             </div>
 
-            <div class="topic-card-header-internal-container">
-                <Button
-                    kind="tertiary"
-                    icon={Checkmark}
-                    hideTooltip
-                    size="small"
-                    on:click={() => {}}
-                ></Button>
-                <Button
-                    kind="tertiary"
-                    icon={Close}
-                    hideTooltip
-                    size="small"
-                    on:click={() => {}}
-                ></Button>
+            <div class="topic-card-internal-container">
+                <span class="topic-card-label"
+                    >Why was this topic identified?</span
+                >
+                <span class="topic-card-text"
+                    >{identifiedTopic.explanation}</span
+                >
+            </div>
+
+            <div class="topic-card-internal-container">
+                <span class="topic-card-label">Supporting quotes</span>
+                {#each identifiedTopic.quotes as quote (quote.line_number)}
+                    <Quote
+                        line_number={quote.line_number}
+                        timestamp={quote.timestamp}
+                        speaker={quote.speaker}
+                        quote={quote.quote}
+                    />
+                {/each}
+            </div>
+
+            <div class="overall-evaluation-card-container">
+                <div class="overall-evaluation-header-container">
+                    <svelte:component
+                        this={VALIDATION_STATUS_MAP[
+                            identifiedTopic.validation.status
+                        ].principalIcon}
+                        style={`
+                            fill: ${VALIDATION_STATUS_MAP[identifiedTopic.validation.status].iconColor};
+                        `}
+                    />
+                    <span class="overall-evaluation-title-text">
+                        Overall evaluation:
+                        {VALIDATION_STATUS_MAP[
+                            identifiedTopic.validation.status
+                        ].text}
+                    </span>
+                    <Tooltip class="overall-evaluation-tooltip" icon={Help}>
+                        <p>
+                            Overall evaluation is determined using the strategy
+                            selected in the
+                            <Link class="select-files-link" on:click={() => {}}>
+                                AI settings
+                            </Link>
+                            for this study. Currently, the strategy is set to strictest:
+                            show worst status.
+                        </p>
+                    </Tooltip>
+                </div>
+
+                <div class="overall-evaluation-card-content-container">
+                    <CheckValidation
+                        checkValidation={getTopicCheckValidation(
+                            identifiedTopic.validation.checks,
+                            "quote_validation",
+                        )}
+                        labelText="Quote validation"
+                    />
+                    <CheckValidation
+                        checkValidation={getTopicCheckValidation(
+                            identifiedTopic.validation.checks,
+                            "llm_validation",
+                        )}
+                        labelText="LLM validation"
+                    />
+                    <CheckValidation
+                        checkValidation={getTopicCheckValidation(
+                            identifiedTopic.validation.checks,
+                            "llm_assessment",
+                        )}
+                        labelText="Additional explanation"
+                    />
+                </div>
             </div>
         </div>
-
-        <div class="topic-card-internal-container">
-            <span class="topic-card-label">Why was this topic identified?</span>
-            <span class="topic-card-text">{identifiedTopic.explanation}</span>
-        </div>
-
-        <div class="topic-card-internal-container">
-            <span class="topic-card-label">Supporting quotes</span>
-            {#each identifiedTopic.quotes as quote (quote.line_number)}
-                <Quote
-                    line_number={quote.line_number}
-                    timestamp={quote.timestamp}
-                    speaker={quote.speaker}
-                    quote={quote.quote}
-                />
-            {/each}
-        </div>
-    </div>
+    {/if}
 {/each}
 
 <style lang="scss">
@@ -203,6 +294,32 @@
         line-height: 1.125rem;
     }
 
+    .overall-evaluation-card-container {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--cds-ui-background);
+        border: 0.5px solid var(--cds-border-interactive);
+    }
+
+    .overall-evaluation-header-container {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 1rem 2rem;
+        border-bottom: 0.5px solid var(--cds-border-interactive);
+    }
+
+    .overall-evaluation-title-text {
+        @include type.type-style("heading-compact-02");
+    }
+
+    .overall-evaluation-card-content-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 2rem;
+    }
+
     :global(.run-topic-extraction-button) {
         width: fit-content;
         padding-right: 12px;
@@ -211,5 +328,14 @@
     :global(.uncertain-quality-tag) {
         background-color: #ffd9be;
         color: #8a3800;
+    }
+
+    :global(.overall-evaluation-tooltip) {
+        margin-top: 2px;
+        margin-left: -0.25rem;
+    }
+
+    :global(.overall-evaluation-tooltip .bx--tooltip) {
+        width: 18rem;
     }
 </style>

@@ -58,6 +58,10 @@ html, body {
   height: 1.125rem;
 }
 
+.link {
+  cursor: pointer;
+}
+
 /* Wizard layout */
 .wizard-container {
   background: #ffffff;

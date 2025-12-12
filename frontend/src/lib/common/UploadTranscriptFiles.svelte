@@ -192,7 +192,7 @@
             <span class="drop-files-message">
                 Drop files here or
                 <Link
-                    class="select-files-link"
+                    class="link select-files-link"
                     on:click={handleSelectFilesClick}
                 >
                     select files
@@ -264,7 +264,6 @@
     }
 
     :global(.select-files-link) {
-        cursor: pointer;
         font-weight: 700;
         line-height: 1.125rem;
     }

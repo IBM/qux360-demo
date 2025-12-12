@@ -120,6 +120,13 @@ export enum ValidationStatus {
     Iffy = "iffy",
 }
 
+export interface ExtendedValidationStatus {
+    text: string;
+    principalIcon: Component<CarbonIconProps>;
+    secondaryIcon: Component<CarbonIconProps>;
+    iconColor: string;
+}
+
 export interface IntervieweeValidation {
     status: ValidationStatus;
     explanation: string;
@@ -133,8 +140,11 @@ export interface IntervieweeValidation {
 
 export interface IntervieweeMetadata {
     word_ratio?: number;
-    prediction: string;
+    prediction?: string;
     agreement?: boolean;
+    strengths?: string;
+    weaknesses?: string;
+    full_assessment?: string;
 }
 
 export interface IdentifyParticipantResponse {

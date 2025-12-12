@@ -75,10 +75,7 @@
                     <span>
                         {$selectedTranscriptStore.participant.explanation}
                     </span>
-                    <Link
-                        class="dismiss-explanation-link"
-                        on:click={updateParticipantExplanation}
-                    >
+                    <Link class="link" on:click={updateParticipantExplanation}>
                         Dismiss
                     </Link>
                 </div>
@@ -111,9 +108,5 @@
     .participant-explanation-container {
         @include type.type-style("label-01");
         line-height: 1rem;
-    }
-
-    :global(.dismiss-explanation-link) {
-        cursor: pointer;
     }
 </style>

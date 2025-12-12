@@ -3,12 +3,19 @@ import {
     SerializableTranscriptStatusIcon,
     StudyState,
     TranscriptState,
+    ValidationStatus,
+    type ExtendedValidationStatus,
     type StudyStatusI,
     type TranscriptStatusI,
 } from "$lib/models";
 import {
+    CheckmarkFilled,
     CheckmarkOutline,
     CircleFill,
+    ErrorFilled,
+    ErrorOutline,
+    Help,
+    HelpFilled,
     InProgress,
     WarningAltFilled,
     WarningFilled,
@@ -39,6 +46,30 @@ export const SERIALIZABLE_STUDY_STATUS_TO_ICON_MAP: Record<
     [SerializableStudyStatusIcon.CheckmarkOutline]: CheckmarkOutline,
     [SerializableStudyStatusIcon.WarningAltFilled]: WarningAltFilled,
     [SerializableStudyStatusIcon.WarningFilled]: WarningFilled,
+};
+
+export const VALIDATION_STATUS_MAP: Record<
+    ValidationStatus,
+    ExtendedValidationStatus
+> = {
+    [ValidationStatus.Ok]: {
+        text: "High quality",
+        principalIcon: CheckmarkFilled,
+        secondaryIcon: CheckmarkOutline,
+        iconColor: "#0043CE",
+    },
+    [ValidationStatus.Check]: {
+        text: "Uncertain quality",
+        principalIcon: HelpFilled,
+        secondaryIcon: Help,
+        iconColor: "#FF832B",
+    },
+    [ValidationStatus.Iffy]: {
+        text: "Low quality",
+        principalIcon: ErrorFilled,
+        secondaryIcon: ErrorOutline,
+        iconColor: "#DA1E28",
+    },
 };
 
 export const READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS: TranscriptStatusI =

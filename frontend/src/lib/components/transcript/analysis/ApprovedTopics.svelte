@@ -15,7 +15,7 @@
                 {#each identifiedTopics as identifiedTopic, index (index)}
                     <div class="topic-name-container">
                         <div class="horizonal-line"></div>
-                        <Link class="topic-name-link" on:click={() => {}}>
+                        <Link class="link" on:click={() => {}}>
                             {identifiedTopic.topic}
                         </Link>
                     </div>
