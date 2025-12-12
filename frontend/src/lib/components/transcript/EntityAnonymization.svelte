@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { AILabel } from "$lib/common";
+    import { AILabel, Quote } from "$lib/common";
     import type {
         EntityAnonymizationMap,
         ExtendedEntityAnonymizationMap,
@@ -7,7 +7,7 @@
         TranscriptFileI,
         TranscriptLineI,
     } from "$lib/models";
-    import { apiService, utilsService } from "$lib/services";
+    import { apiService } from "$lib/services";
     import {
         selectedStudyStore,
         selectedTranscriptStore,
@@ -219,21 +219,6 @@
         );
     };
 
-    const highlightEntity = (statement: string, entity: string): string => {
-        if (!entity) return statement;
-
-        const escapedEntity: string = entity.replace(
-            /[.*+?^${}()|[\]\\]/g,
-            "\\$&",
-        );
-        const regex: RegExp = new RegExp(`\\b(${escapedEntity})\\b`, "gi");
-
-        return statement.replace(
-            regex,
-            "<strong class='bold-entity'>$1</strong>",
-        );
-    };
-
     const transformToExtendedEntityAnonymizationMap =
         (): ExtendedEntityAnonymizationMap => {
             return Object.entries(entityAnonymizationMap).reduce(
@@ -252,10 +237,6 @@
                 {} as ExtendedEntityAnonymizationMap,
             );
         };
-
-    const handleTranscriptLineHeaderClick = (lineNumber: number): void => {
-        utilsService.scrollToTranscriptLine(lineNumber);
-    };
 </script>
 
 <div class="entity-anonymization-container">
@@ -334,26 +315,13 @@
                             {/each}
                         {:else}
                             {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.line_number)}
-                                <div class="transcript-line-container">
-                                    <span
-                                        class="transcript-line-header"
-                                        on:click={() => {
-                                            handleTranscriptLineHeaderClick(
-                                                transcriptLine.line_number,
-                                            );
-                                        }}
-                                    >
-                                        {transcriptLine.speaker}
-                                        <strong>•</strong>
-                                        {transcriptLine.timestamp}
-                                    </span>
-                                    <span>
-                                        {@html highlightEntity(
-                                            transcriptLine.statement,
-                                            entity,
-                                        )}
-                                    </span>
-                                </div>
+                                <Quote
+                                    line_number={transcriptLine.line_number}
+                                    timestamp={transcriptLine.timestamp}
+                                    speaker={transcriptLine.speaker}
+                                    quote={transcriptLine.statement}
+                                    {entity}
+                                />
                             {/each}
                         {/if}
                     </div>
@@ -431,22 +399,6 @@
         gap: 0.5rem;
     }
 
-    .transcript-line-container {
-        display: flex;
-        flex-direction: column;
-        @include type.type-style("label-02");
-        line-height: 1.125rem;
-    }
-
-    .transcript-line-header {
-        width: fit-content;
-    }
-
-    .transcript-line-header:hover {
-        cursor: pointer;
-        opacity: 0.5;
-    }
-
     :global(.run-entity-anonymization-button) {
         padding-right: 12px;
     }
@@ -455,9 +407,5 @@
         color: black;
         padding: 3px !important;
         margin-bottom: 0.25rem;
-    }
-
-    :global(.bold-entity) {
-        font-weight: 700;
     }
 </style>

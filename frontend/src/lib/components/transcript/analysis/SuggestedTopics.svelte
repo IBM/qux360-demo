@@ -1,6 +1,7 @@
 <script lang="ts">
     import {
         AILabel,
+        Quote,
         RUNNING_TOPIC_EXTRACTION_TRANSCRIPT_STATUS,
     } from "$lib/common";
     import { ValidationStatus, type IdentifiedTopicI } from "$lib/models";
@@ -136,6 +137,14 @@
 
         <div class="topic-card-internal-container">
             <span class="topic-card-label">Supporting quotes</span>
+            {#each identifiedTopic.quotes as quote (quote.line_number)}
+                <Quote
+                    line_number={quote.line_number}
+                    timestamp={quote.timestamp}
+                    speaker={quote.speaker}
+                    quote={quote.quote}
+                />
+            {/each}
         </div>
     </div>
 {/each}

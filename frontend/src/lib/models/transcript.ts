@@ -67,7 +67,7 @@ export interface IdentifiedParticipantI {
 export interface IdentifiedTopicI {
     topic: string;
     explanation: string;
-    quote: QuoteI[];
+    quotes: QuoteI[];
     validation: IntervieweeValidation | null;
 }
 

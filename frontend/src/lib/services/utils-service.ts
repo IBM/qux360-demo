@@ -224,18 +224,6 @@ class UtilsService {
             status: this.getStudyStatus(serializableStudy.status),
         };
     }
-
-    public scrollToTranscriptLine(lineNumber: number): void {
-        const element: HTMLElement | null = document.getElementById(
-            `transcript-line-${lineNumber}`,
-        );
-        if (!element) return;
-
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-
-        element.classList.add("highlight-pulse");
-        setTimeout(() => element.classList.remove("highlight-pulse"), 3000);
-    }
 }
 
 export default new UtilsService();
