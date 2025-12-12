@@ -457,23 +457,10 @@ const createStudiesStore = () => {
                                     status: READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
                                     participant: {
                                         ...t.participant,
-                                        explanation: "Reviewed by the user",
                                         showExplanation: false,
                                         validation: {
-                                            status: ValidationStatus.Ok,
-                                            explanation: "Reviewed by the user",
-                                            errors: t.participant.validation
-                                                .errors,
-                                            method: t.participant.validation
-                                                .method,
-                                            metadata:
-                                                t.participant.validation
-                                                    .metadata,
-                                            checks: t.participant.validation
-                                                .checks,
-                                            informational:
-                                                t.participant.validation
-                                                    .informational,
+                                            ...t.participant.validation,
+                                            isApprovedByUser: true,
                                         },
                                     },
                                 };

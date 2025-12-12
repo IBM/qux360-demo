@@ -128,6 +128,7 @@ export interface IntervieweeValidation {
     metadata: IntervieweeMetadata | null;
     checks: IntervieweeValidation[];
     informational: boolean;
+    isApprovedByUser: boolean;
 }
 
 export interface IntervieweeMetadata {

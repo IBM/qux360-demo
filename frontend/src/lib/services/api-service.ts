@@ -122,7 +122,7 @@ class ApiService {
                 });
             }
 
-            const data: IdentifyParticipantResponse = await response.json();
+            const data = await response.json();
 
             if (data.error) {
                 notificationsStore.addNotification({
@@ -132,7 +132,13 @@ class ApiService {
                 });
             }
 
-            return data;
+            return {
+                ...data,
+                validation: {
+                    ...data.validation,
+                    isApprovedByUser: false,
+                },
+            };
         } catch (error) {
             return {
                 error: "An error occurred while identifying the participant",
