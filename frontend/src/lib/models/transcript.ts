@@ -64,6 +64,13 @@ export interface IdentifiedParticipantI {
     validation: IntervieweeValidation | null;
 }
 
+export interface IdentifiedTopicI {
+    topic: string;
+    explanation: string;
+    quote: QuoteI[];
+    validation: IntervieweeValidation | null;
+}
+
 export interface TranscriptFileI {
     id?: number;
     name: string;
@@ -75,6 +82,7 @@ export interface TranscriptFileI {
     participant: IdentifiedParticipantI;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
     entity_anonymization_map: EntityAnonymizationMap;
+    topics: IdentifiedTopicI[];
 }
 
 export enum SerializableTranscriptStatusIcon {
@@ -103,6 +111,7 @@ export interface SerializableTranscriptFileI {
     participant: IdentifiedParticipantI;
     speaker_anonymization_map: SpeakerAnonymizationMap | null;
     entity_anonymization_map: EntityAnonymizationMap;
+    topics: IdentifiedTopicI[];
 }
 
 export enum ValidationStatus {
@@ -152,4 +161,11 @@ export interface TranscriptLineI {
     timestamp: string;
     speaker: string;
     statement: string;
+}
+
+export interface QuoteI {
+    line_number: number;
+    timestamp: string;
+    speaker: string;
+    quote: string;
 }

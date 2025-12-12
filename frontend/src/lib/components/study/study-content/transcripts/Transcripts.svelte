@@ -174,6 +174,7 @@
                     },
                     speaker_anonymization_map: null,
                     entity_anonymization_map: {},
+                    topics: [],
                 };
             });
 

@@ -78,6 +78,7 @@ class UtilsService {
             participant: transcriptFile.participant,
             speaker_anonymization_map: transcriptFile.speaker_anonymization_map,
             entity_anonymization_map: transcriptFile.entity_anonymization_map,
+            topics: transcriptFile.topics,
         };
     }
 
@@ -97,6 +98,7 @@ class UtilsService {
             },
             speaker_anonymization_map: null,
             entity_anonymization_map: {},
+            topics: [],
         };
     }
 
@@ -186,6 +188,7 @@ class UtilsService {
                 serializableTranscriptFile.speaker_anonymization_map,
             entity_anonymization_map:
                 serializableTranscriptFile.entity_anonymization_map,
+            topics: serializableTranscriptFile.topics,
         };
     }
 
