@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { AILabel, Quote } from "$lib/common";
+    import {
+        AILabel,
+        Quote,
+        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
+    } from "$lib/common";
     import type {
         EntityAnonymizationMap,
         ExtendedEntityAnonymizationMap,
@@ -38,6 +42,8 @@
     let isLoadingTranscriptLines: boolean = true;
     let transcriptLines: TranscriptLineI[] = [];
 
+    let isRunAnonymizationButtonLoading: boolean = false;
+
     let unsubscribeSelectedTranscriptStore: Unsubscriber;
 
     $: if ($selectedTranscriptStore && transcriptLines) {
@@ -50,9 +56,17 @@
     $: isAddEntityModalOpen, (newEntityName = "");
     $: isExistingEntity = newEntityName in entityAnonymizationMap;
 
+    $: isRunAnonymizationButtonLoading =
+        isRunningEntityAnonymization ||
+        !$selectedTranscriptStore ||
+        $selectedTranscriptStore.status.status ===
+            RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status;
+
+    $: !isRunAnonymizationButtonLoading, updateAILabelSlugColor();
+
     onMount(() => {
-        requestAnimationFrame(() => {
-            updateAILabelSlugColor();
+        requestAnimationFrame(async () => {
+            await updateAILabelSlugColor();
         });
 
         unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
@@ -82,7 +96,9 @@
         unsubscribeSelectedTranscriptStore?.();
     });
 
-    const updateAILabelSlugColor = (): void => {
+    const updateAILabelSlugColor = async (): Promise<void> => {
+        await tick();
+
         const shadow: ShadowRoot | null | undefined =
             runEntityAnonymizationButtonContentElementRef?.lastElementChild
                 ?.shadowRoot;
@@ -127,8 +143,7 @@
                 $selectedTranscriptStore.id,
             );
             isRunningEntityAnonymization = false;
-            await tick();
-            updateAILabelSlugColor();
+            await updateAILabelSlugColor();
         }
     };
 
@@ -246,7 +261,7 @@
             class="run-anonymization-button run-entity-anonymization-button"
             kind="primary"
             size="field"
-            skeleton={isRunningEntityAnonymization}
+            skeleton={isRunAnonymizationButtonLoading}
             on:click={async () => {
                 await runTranscriptEntityAnonymizationWithAI();
             }}
@@ -270,7 +285,7 @@
             kind="tertiary"
             size="field"
             icon={Add}
-            skeleton={isRunningEntityAnonymization}
+            skeleton={isRunAnonymizationButtonLoading}
             on:click={handleAddEntityButtonClick}
         >
             Add entity

@@ -2,7 +2,6 @@
     import {
         PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
         READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
-        READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
         RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
         RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
     } from "$lib/common";
@@ -12,7 +11,7 @@
         selectedTranscriptStore,
         studiesStore,
     } from "$lib/stores";
-    import { Button, TextInput } from "carbon-components-svelte";
+    import { Button, SkeletonText, TextInput } from "carbon-components-svelte";
     import { Close } from "carbon-icons-svelte";
 
     let speakerAnonymizationMap: SpeakerAnonymizationMap | null = null;
@@ -57,7 +56,9 @@
 
 <div class="speaker-anonymization-container">
     <h3 class="transcript-section-title">Speaker anonymization</h3>
-    {#if !$selectedTranscriptStore || [READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS.status, RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status, PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status].includes($selectedTranscriptStore.status.status)}
+    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status}
+        <SkeletonText width="17rem" />
+    {:else if $selectedTranscriptStore.status.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
         <p class="confirm-participant-text">
             Confirm participant to start anonymization.
         </p>
