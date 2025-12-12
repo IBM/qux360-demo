@@ -1,19 +1,40 @@
 <script lang="ts">
     import { AILabel } from "$lib/common";
+    import type { IdentifiedTopicI } from "$lib/models";
+    import { selectedTranscriptStore } from "$lib/stores";
     import { ContentSwitcher, Switch } from "carbon-components-svelte";
     import { ApprovedTopics, SuggestedTopics } from "./analysis";
 
+    let approvedIdentifiedTopics: IdentifiedTopicI[] = [];
+    let suggestedIdentifiedTopics: IdentifiedTopicI[] = [];
+
     let selectedContentSwitcherIndex: number = 0;
+
+    $: if ($selectedTranscriptStore) {
+        approvedIdentifiedTopics = $selectedTranscriptStore.topics.filter(
+            (topic: IdentifiedTopicI) =>
+                topic.validation && topic.validation.isApprovedByUser,
+        );
+
+        suggestedIdentifiedTopics = $selectedTranscriptStore.topics.filter(
+            (topic: IdentifiedTopicI) =>
+                topic.validation && !topic.validation.isApprovedByUser,
+        );
+    }
 </script>
 
 <div class="transcript-analysis-container">
     <h3 class="transcript-section-title">Topics</h3>
 
     <ContentSwitcher bind:selectedIndex={selectedContentSwitcherIndex}>
-        <Switch text="Approved topics" />
+        <Switch>
+            <span>Approved topics ({approvedIdentifiedTopics.length})</span>
+        </Switch>
         <Switch>
             <div class="suggested-topics-content-switcher-title-container">
-                <span>Suggested topics</span>
+                <span>
+                    Suggested topics ({suggestedIdentifiedTopics.length})
+                </span>
                 <AILabel
                     headerText="Suggested topics"
                     bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."
@@ -27,9 +48,9 @@
     </ContentSwitcher>
 
     {#if selectedContentSwitcherIndex === 0}
-        <ApprovedTopics />
+        <ApprovedTopics identifiedTopics={approvedIdentifiedTopics} />
     {:else if selectedContentSwitcherIndex === 1}
-        <SuggestedTopics />
+        <SuggestedTopics identifiedTopics={suggestedIdentifiedTopics} />
     {/if}
 </div>
 
