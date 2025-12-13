@@ -62,11 +62,23 @@
         );
     };
 
-    const handleApproveButtonClick = (
+    const handleApproveTopicButtonClick = (
         identifiedTopic: IdentifiedTopicI,
     ): void => {
         if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
             studiesStore.approvedTopic(
+                $selectedStudyIdStore,
+                $selectedTranscriptFileIdStore,
+                identifiedTopic,
+            );
+        }
+    };
+
+    const handleRemoveTopicButtonClick = (
+        identifiedTopic: IdentifiedTopicI,
+    ): void => {
+        if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
+            studiesStore.removeTopic(
                 $selectedStudyIdStore,
                 $selectedTranscriptFileIdStore,
                 identifiedTopic,
@@ -168,7 +180,7 @@
                         hideTooltip
                         size="small"
                         on:click={() => {
-                            handleApproveButtonClick(identifiedTopic);
+                            handleApproveTopicButtonClick(identifiedTopic);
                         }}
                     ></Button>
                     <Button
@@ -176,7 +188,9 @@
                         icon={Close}
                         hideTooltip
                         size="small"
-                        on:click={() => {}}
+                        on:click={() => {
+                            handleRemoveTopicButtonClick(identifiedTopic);
+                        }}
                     ></Button>
                 </div>
             </div>

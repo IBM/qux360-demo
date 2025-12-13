@@ -526,6 +526,43 @@ const createStudiesStore = () => {
                 });
             });
         },
+        removeTopic: (
+            studyId: string,
+            transcriptFileId: number,
+            topicToRemove: IdentifiedTopicI,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            const updatedTopics: IdentifiedTopicI[] =
+                                t.topics.filter(
+                                    (tc: IdentifiedTopicI) =>
+                                        tc.topic !== topicToRemove.topic,
+                                );
+
+                            return {
+                                ...t,
+                                topics: updatedTopics,
+                            };
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
     };
 };
 
