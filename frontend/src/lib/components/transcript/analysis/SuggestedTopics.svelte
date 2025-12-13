@@ -10,7 +10,12 @@
         type IdentifiedTopicI,
         type IntervieweeValidation,
     } from "$lib/models";
-    import { selectedTranscriptStore } from "$lib/stores";
+    import {
+        selectedStudyIdStore,
+        selectedTranscriptFileIdStore,
+        selectedTranscriptStore,
+        studiesStore,
+    } from "$lib/stores";
     import { Button, Link, Tag, Tooltip } from "carbon-components-svelte";
     import { Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
@@ -55,6 +60,18 @@
         return checks.find(
             (check: IntervieweeValidation) => check.method === method,
         );
+    };
+
+    const handleApproveButtonClick = (
+        identifiedTopic: IdentifiedTopicI,
+    ): void => {
+        if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
+            studiesStore.approvedTopic(
+                $selectedStudyIdStore,
+                $selectedTranscriptFileIdStore,
+                identifiedTopic,
+            );
+        }
     };
 </script>
 
@@ -150,7 +167,9 @@
                         icon={Checkmark}
                         hideTooltip
                         size="small"
-                        on:click={() => {}}
+                        on:click={() => {
+                            handleApproveButtonClick(identifiedTopic);
+                        }}
                     ></Button>
                     <Button
                         kind="tertiary"

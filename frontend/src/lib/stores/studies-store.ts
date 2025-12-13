@@ -13,6 +13,7 @@ import {
     TranscriptState,
     ValidationStatus,
     type EntityAnonymizationResponse,
+    type IdentifiedTopicI,
     type IdentifyParticipantResponse,
     type IntervieweeValidation,
     type SpeakerAnonymizationResponse,
@@ -465,6 +466,52 @@ const createStudiesStore = () => {
                                     },
                                 };
                             }
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
+        approvedTopic: (
+            studyId: string,
+            transcriptFileId: number,
+            identifiedTopic: IdentifiedTopicI,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            const updatedTopics: IdentifiedTopicI[] =
+                                t.topics.map((tc: IdentifiedTopicI) => {
+                                    if (tc.topic !== identifiedTopic.topic)
+                                        return tc;
+                                    if (!tc.validation) return tc;
+
+                                    return {
+                                        ...tc,
+                                        validation: {
+                                            ...tc.validation,
+                                            isApprovedByUser: true,
+                                        },
+                                    };
+                                });
+
+                            return {
+                                ...t,
+                                topics: updatedTopics,
+                            };
                         });
 
                     const updatedStudy: StudyI = {
