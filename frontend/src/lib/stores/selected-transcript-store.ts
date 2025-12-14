@@ -30,3 +30,11 @@ export const isParticipantIdentificationRunningStore: Readable<boolean> =
             $selectedTranscriptStore.status ===
                 TranscriptStatus.RunningParticipantIdentification,
     );
+
+export const isParticipantNeedsReviewStore: Readable<boolean> = derived(
+    selectedTranscriptStore,
+    ($selectedTranscriptStore) =>
+        $selectedTranscriptStore !== null &&
+        $selectedTranscriptStore.status ===
+            TranscriptStatus.ParticipantNeedsReview,
+);

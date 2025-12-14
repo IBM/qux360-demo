@@ -5,6 +5,7 @@
     } from "$lib/models";
     import {
         isParticipantIdentificationRunningStore,
+        isParticipantNeedsReviewStore,
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
@@ -56,7 +57,7 @@
     <h3 class="transcript-section-title">Speaker anonymization</h3>
     {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <SkeletonText width="17rem" />
-    {:else if $selectedTranscriptStore.status === TranscriptStatus.ParticipantNeedsReview}
+    {:else if $isParticipantNeedsReviewStore}
         <p class="confirm-participant-text">
             Confirm participant to start anonymization.
         </p>

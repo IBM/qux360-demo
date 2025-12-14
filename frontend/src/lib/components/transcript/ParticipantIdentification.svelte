@@ -1,8 +1,9 @@
 <script lang="ts">
     import { AILabel } from "$lib/common";
-    import { TranscriptStatus, type DropdownItem } from "$lib/models";
+    import { type DropdownItem } from "$lib/models";
     import {
         isParticipantIdentificationRunningStore,
+        isParticipantNeedsReviewStore,
         selectedStudyIdStore,
         selectedTranscriptFileIdStore,
         selectedTranscriptStore,
@@ -60,13 +61,12 @@
                 size="xl"
                 selectedId={speakerSelectedId}
                 items={speakersDropdownItems}
-                invalid={$selectedTranscriptStore.status ===
-                    TranscriptStatus.ParticipantNeedsReview}
+                invalid={$isParticipantNeedsReviewStore}
                 on:select={updateParticipantExplanation}
             />
             {#if $selectedTranscriptStore.participant.showExplanation}
                 <div class="participant-explanation-container">
-                    {#if $selectedTranscriptStore.status === TranscriptStatus.ParticipantNeedsReview}
+                    {#if $isParticipantNeedsReviewStore}
                         <strong>Needs review:</strong>
                     {/if}
                     <span>
