@@ -8,6 +8,7 @@ import {
     type EntityAnonymizationResponse,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
+    type QuoteI,
     type SpeakerAnonymizationResponse,
     type StudyI,
     type TranscriptFileI,
@@ -503,7 +504,7 @@ const createStudiesStore = () => {
                 });
             });
         },
-        approvedTopic: (
+        approveTopic: (
             studyId: string,
             transcriptFileId: number,
             identifiedTopic: IdentifiedTopicI,
@@ -528,6 +529,54 @@ const createStudiesStore = () => {
                                             ...tc.validation,
                                             isApprovedByUser: true,
                                         },
+                                    };
+                                });
+
+                            return {
+                                ...t,
+                                topics: updatedTopics,
+                            };
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
+        updateTopic: (
+            studyId: string,
+            transcriptFileId: number,
+            originalTopicName: string,
+            topicName: string,
+            topicDescription: string,
+            quotes: QuoteI[],
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            const updatedTopics: IdentifiedTopicI[] =
+                                t.topics.map((tc: IdentifiedTopicI) => {
+                                    if (tc.topic !== originalTopicName)
+                                        return tc;
+                                    if (!tc.validation) return tc;
+
+                                    return {
+                                        ...tc,
+                                        topic: topicName,
+                                        explanation: topicDescription,
+                                        quotes: quotes,
                                     };
                                 });
 

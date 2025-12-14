@@ -24,6 +24,7 @@
     import { Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
     import CheckValidation from "./CheckValidation.svelte";
+    import EditTopicModal from "./EditTopicModal.svelte";
 
     export let identifiedTopics: IdentifiedTopicI[];
 
@@ -32,6 +33,9 @@
 
     let isReRunTopicExtractionButtonLoading: boolean = false;
 
+    let topicToEdit: IdentifiedTopicI | null = null;
+
+    let isEditTopicModalOpen: boolean = false;
     let isAISettingsModalOpen: boolean = false;
 
     $: isReRunTopicExtractionButtonLoading =
@@ -55,11 +59,16 @@
         return checks.find((check: ValidationI) => check.method === method);
     };
 
+    const handleTopicNameLinkClick = (topic: IdentifiedTopicI): void => {
+        topicToEdit = topic;
+        isEditTopicModalOpen = true;
+    };
+
     const handleApproveTopicButtonClick = (
         identifiedTopic: IdentifiedTopicI,
     ): void => {
         if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
-            studiesStore.approvedTopic(
+            studiesStore.approveTopic(
                 $selectedStudyIdStore,
                 $selectedTranscriptFileIdStore,
                 identifiedTopic,
@@ -90,7 +99,12 @@
                 {#each identifiedTopics as identifiedTopic, index (index)}
                     <div class="topic-name-container">
                         <div class="horizonal-line"></div>
-                        <Link class="link" on:click={() => {}}>
+                        <Link
+                            class="link"
+                            on:click={() => {
+                                handleTopicNameLinkClick(identifiedTopic);
+                            }}
+                        >
                             {identifiedTopic.topic}
                         </Link>
                         {#if identifiedTopic.validation}
@@ -275,6 +289,18 @@
         </div>
     {/if}
 {/each}
+
+{#key isEditTopicModalOpen}
+    {#if isEditTopicModalOpen && topicToEdit}
+        <EditTopicModal
+            bind:isModalOpen={isEditTopicModalOpen}
+            originalTopicName={topicToEdit.topic}
+            topicName={topicToEdit.topic}
+            topicDescription={topicToEdit.explanation}
+            quotes={topicToEdit.quotes}
+        />
+    {/if}
+{/key}
 
 {#key isAISettingsModalOpen}
     {#if isAISettingsModalOpen}
