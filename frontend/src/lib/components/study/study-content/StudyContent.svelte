@@ -1,10 +1,12 @@
 <script lang="ts">
-    import { StudyContentTabID, Tabs } from "$lib/common";
+    import { AISettingsModal, StudyContentTabID, Tabs } from "$lib/common";
     import type { TabI } from "$lib/models";
     import { selectedStudyIdStore, selectedStudyStore } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft, Settings } from "carbon-icons-svelte";
     import { Transcripts } from ".";
+
+    let isAISettingsModalOpen: boolean = false;
 
     const tabs: TabI[] = [
         { id: StudyContentTabID.Transcripts, label: "Transcripts" },
@@ -19,7 +21,7 @@
     };
 
     const handleAISettingsButtonClick = (): void => {
-        // TODO: Add functionality
+        isAISettingsModalOpen = true;
     };
 </script>
 
@@ -50,6 +52,15 @@
     {#if activeTab === StudyContentTabID.Transcripts}
         <Transcripts transcriptFiles={$selectedStudyStore.transcriptFiles} />
     {/if}
+
+    {#key isAISettingsModalOpen}
+        {#if isAISettingsModalOpen}
+            <AISettingsModal
+                bind:isModalOpen={isAISettingsModalOpen}
+                study={$selectedStudyStore}
+            />
+        {/if}
+    {/key}
 {/if}
 
 <style lang="scss">
