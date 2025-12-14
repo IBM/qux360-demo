@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { StudyI } from "$lib/models";
+    import type { StudyI, ValidationStrategy } from "$lib/models";
     import { studiesStore } from "$lib/stores";
     import {
         Modal,
@@ -11,15 +11,14 @@
     export let isModalOpen: boolean;
     export let study: StudyI;
 
+    let validationStrategy: ValidationStrategy = study.validation_strategy;
+
     const handleCancelButtonClick = (): void => {
         isModalOpen = false;
     };
 
     const handleSaveButtonClick = (): void => {
-        studiesStore.updateValidationStrategy(
-            study.id,
-            study.validation_strategy,
-        );
+        studiesStore.updateValidationStrategy(study.id, validationStrategy);
         isModalOpen = false;
     };
 </script>
@@ -33,7 +32,7 @@
     on:click:button--primary={handleSaveButtonClick}
 >
     <RadioButtonGroup
-        bind:selected={study.validation_strategy}
+        bind:selected={validationStrategy}
         orientation="vertical"
         legendText="Overall validation strategy"
         name="ai-settings"
