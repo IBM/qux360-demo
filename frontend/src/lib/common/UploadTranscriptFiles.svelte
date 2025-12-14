@@ -161,68 +161,77 @@
     };
 </script>
 
-<div class="drop-files-external-container">
-    <p class="bx--file--label">Upload study transcripts</p>
-    <p class="bx--label-description">
-        Max file size is 500kb. Supported file types are .docx, .xlsx, and .csv.
-    </p>
+<div class="upload-transcripts-files-container">
+    <div class="drop-files-external-container">
+        <p class="bx--file--label">Upload study transcripts</p>
+        <p class="bx--label-description">
+            Max file size is 500kb. Supported file types are .docx, .xlsx, and
+            .csv.
+        </p>
 
-    <input
-        bind:this={inputRef}
-        class="hidden"
-        aria-label="Select files"
-        type="file"
-        multiple
-        accept={FILE_SUPPORTED_TYPES.join(",")}
-        on:change={handleInputChange}
-    />
+        <input
+            bind:this={inputRef}
+            class="hidden"
+            aria-label="Select files"
+            type="file"
+            multiple
+            accept={FILE_SUPPORTED_TYPES.join(",")}
+            on:change={handleInputChange}
+        />
 
-    <div
-        role="button"
-        tabindex="0"
-        aria-label="Drop files here"
-        class="drop-files-container"
-        class:drop-files-container-dragging={isDragging}
-        on:dragover={handleDragOver}
-        on:dragleave={handleDragLeave}
-        on:drop={handleDrop}
-    >
-        <div class="drop-files-internal-container">
-            <Upload />
-            <span class="drop-files-message">
-                Drop files here or
-                <Link
-                    class="link select-files-link"
-                    on:click={handleSelectFilesClick}
-                >
-                    select files
-                </Link>
-            </span>
+        <div
+            role="button"
+            tabindex="0"
+            aria-label="Drop files here"
+            class="drop-files-container"
+            class:drop-files-container-dragging={isDragging}
+            on:dragover={handleDragOver}
+            on:dragleave={handleDragLeave}
+            on:drop={handleDrop}
+        >
+            <div class="drop-files-internal-container">
+                <Upload />
+                <span class="drop-files-message">
+                    Drop files here or
+                    <Link
+                        class="link select-files-link"
+                        on:click={handleSelectFilesClick}
+                    >
+                        select files
+                    </Link>
+                </span>
+            </div>
         </div>
     </div>
-</div>
 
-{#if uploadedTranscriptFiles.length > 0}
-    <div class="file-uploader-items-container">
-        {#each uploadedTranscriptFiles as item, index (item.id)}
-            <FileUploaderItem
-                class="file-uploader-item"
-                id={item.id}
-                name={item.file.name}
-                invalid={item.status === UploadedTranscriptFileStatus.Error}
-                errorSubject={item.message}
-                status="edit"
-                on:delete={() => removeFile(index)}
-            />
-        {/each}
-    </div>
-{/if}
+    {#if uploadedTranscriptFiles.length > 0}
+        <div class="file-uploader-items-container">
+            {#each uploadedTranscriptFiles as item, index (item.id)}
+                <FileUploaderItem
+                    class="file-uploader-item"
+                    id={item.id}
+                    name={item.file.name}
+                    invalid={item.status === UploadedTranscriptFileStatus.Error}
+                    errorSubject={item.message}
+                    status="edit"
+                    on:delete={() => removeFile(index)}
+                />
+            {/each}
+        </div>
+    {/if}
+</div>
 
 <style lang="scss">
     @use "@carbon/type";
 
     .hidden {
         display: none;
+    }
+
+    .upload-transcripts-files-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
     }
 
     .drop-files-external-container {

@@ -24,6 +24,10 @@ html, body {
   width: 160px;
 }
 
+.bx--modal .bx--file__selected-file {
+  background-color: var(--cds-field-02);
+}
+
 .bx--search .search-fixed-width {
   width: 350px;
 }
