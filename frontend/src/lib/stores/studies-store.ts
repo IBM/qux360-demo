@@ -209,8 +209,18 @@ const createStudiesStore = () => {
             if (transcriptFileIndex === -1) {
                 return;
             }
+
             const transcriptFile: TranscriptFileI =
                 study.transcriptFiles[transcriptFileIndex];
+            if (
+                [
+                    TranscriptStatus.ReadyToIdentifyParticipants,
+                    TranscriptStatus.RunningParticipantIdentification,
+                    TranscriptStatus.ParticipantNeedsReview,
+                ].includes(transcriptFile.status)
+            ) {
+                return;
+            }
 
             transcriptFile.status = TranscriptStatus.RunningAnonymization;
 

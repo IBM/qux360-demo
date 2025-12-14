@@ -4,6 +4,7 @@
         type SpeakerAnonymizationMap,
     } from "$lib/models";
     import {
+        isParticipantIdentificationRunningStore,
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
@@ -53,7 +54,7 @@
 
 <div class="speaker-anonymization-container">
     <h3 class="transcript-section-title">Speaker anonymization</h3>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status === TranscriptStatus.RunningParticipantIdentification}
+    {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <SkeletonText width="17rem" />
     {:else if $selectedTranscriptStore.status === TranscriptStatus.ParticipantNeedsReview}
         <p class="confirm-participant-text">

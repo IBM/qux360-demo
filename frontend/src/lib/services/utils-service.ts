@@ -5,6 +5,7 @@ import {
     type StudyI,
     type TranscriptFileI,
 } from "$lib/models";
+import { tick } from "svelte";
 import { v7 as uuidv7 } from "uuid";
 
 class UtilsService {
@@ -103,6 +104,31 @@ class UtilsService {
             ...study,
             transcriptFiles: serializedTranscriptFiles,
         };
+    }
+
+    public async updateAILabelSlugColor(
+        buttonContentElementRef: HTMLElement,
+        aiLabelSlugColor: string,
+    ): Promise<void> {
+        await tick();
+
+        const shadow: ShadowRoot | null | undefined =
+            buttonContentElementRef?.lastElementChild?.shadowRoot;
+        if (!shadow) {
+            return;
+        }
+
+        const style: HTMLStyleElement = document.createElement("style");
+        style.textContent = `
+                .cds--slug__text {
+                    color: ${aiLabelSlugColor} !important;
+                }
+
+                .cds--slug__text::before {
+                    background: ${aiLabelSlugColor} !important;
+                }
+            `;
+        shadow.appendChild(style);
     }
 }
 

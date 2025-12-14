@@ -1,15 +1,15 @@
 <script lang="ts">
     import { AILabel, Quote } from "$lib/common";
     import {
-        TranscriptStatus,
         type EntityAnonymizationMap,
         type ExtendedEntityAnonymizationMap,
         type SpeakerAnonymizationMap,
         type TranscriptFileI,
         type TranscriptLineI,
     } from "$lib/models";
-    import { apiService } from "$lib/services";
+    import { apiService, utilsService } from "$lib/services";
     import {
+        isParticipantIdentificationRunningStore,
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
@@ -23,10 +23,11 @@
         TextInputSkeleton,
     } from "carbon-components-svelte";
     import { Add, Close } from "carbon-icons-svelte";
-    import { onDestroy, onMount, tick } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import type { Unsubscriber } from "svelte/store";
 
     let runEntityAnonymizationButtonContentElementRef: HTMLElement;
+    let aiLabelSlugColor: string = "white";
 
     let entityAnonymizationMap: EntityAnonymizationMap = {};
     let extendedEntityAnonymizationMap: ExtendedEntityAnonymizationMap = {};
@@ -54,16 +55,22 @@
     $: isExistingEntity = newEntityName in entityAnonymizationMap;
 
     $: isRunAnonymizationButtonLoading =
-        isRunningEntityAnonymization ||
         !$selectedTranscriptStore ||
-        $selectedTranscriptStore.status ===
-            TranscriptStatus.RunningParticipantIdentification;
+        isRunningEntityAnonymization ||
+        $isParticipantIdentificationRunningStore;
 
-    $: !isRunAnonymizationButtonLoading, updateAILabelSlugColor();
+    $: !isRunAnonymizationButtonLoading,
+        utilsService.updateAILabelSlugColor(
+            runEntityAnonymizationButtonContentElementRef,
+            aiLabelSlugColor,
+        );
 
     onMount(() => {
         requestAnimationFrame(async () => {
-            await updateAILabelSlugColor();
+            await utilsService.updateAILabelSlugColor(
+                runEntityAnonymizationButtonContentElementRef,
+                aiLabelSlugColor,
+            );
         });
 
         unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
@@ -93,29 +100,6 @@
         unsubscribeSelectedTranscriptStore?.();
     });
 
-    const updateAILabelSlugColor = async (): Promise<void> => {
-        await tick();
-
-        const shadow: ShadowRoot | null | undefined =
-            runEntityAnonymizationButtonContentElementRef?.lastElementChild
-                ?.shadowRoot;
-        if (!shadow) {
-            return;
-        }
-
-        const style: HTMLStyleElement = document.createElement("style");
-        style.textContent = `
-                .cds--slug__text {
-                    color: white !important;
-                }
-
-                .cds--slug__text::before {
-                    background: white !important;
-                }
-            `;
-        shadow.appendChild(style);
-    };
-
     const applySpeakerAnonymization = (
         lines: TranscriptLineI[],
         map: SpeakerAnonymizationMap | null,
@@ -140,7 +124,10 @@
                 $selectedTranscriptStore.id,
             );
             isRunningEntityAnonymization = false;
-            await updateAILabelSlugColor();
+            await utilsService.updateAILabelSlugColor(
+                runEntityAnonymizationButtonContentElementRef,
+                aiLabelSlugColor,
+            );
         }
     };
 
@@ -255,7 +242,7 @@
     <h3 class="transcript-section-title">Entity anonymization</h3>
     <div class="entity-anonymization-buttons-container">
         <Button
-            class="run-anonymization-button run-entity-anonymization-button"
+            class="run-anonymization-button"
             kind="primary"
             size="field"
             skeleton={isRunAnonymizationButtonLoading}
@@ -265,7 +252,7 @@
         >
             <div
                 bind:this={runEntityAnonymizationButtonContentElementRef}
-                class="run-anonymization-button-content-container"
+                class="button-with-ai-label-container"
             >
                 Run anonymization
                 <AILabel
@@ -376,11 +363,6 @@
         gap: 0.5rem;
     }
 
-    .run-anonymization-button-content-container {
-        display: flex;
-        gap: 0.25rem;
-    }
-
     .entity-anonymization-item-container {
         display: flex;
         align-items: flex-end;
@@ -409,10 +391,6 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-    }
-
-    :global(.run-entity-anonymization-button) {
-        padding-right: 12px;
     }
 
     :global(.close-entity-anonymization-item-button) {

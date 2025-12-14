@@ -21,7 +21,20 @@ html, body {
 }
 
 .buttons-container .bx--btn {
-  width: 160px;
+  min-width: 160px;
+  width: fit-content;
+  padding-right: 15px;
+}
+
+.button-with-ai-label-container {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.bx--btn--field {
+  min-width: 160px;
+  width: fit-content;
+  padding-right: 12px;
 }
 
 .bx--modal .bx--file__selected-file {

@@ -6,6 +6,7 @@
         type IdentifiedTopicI,
         type ValidationI,
     } from "$lib/models";
+    import { utilsService } from "$lib/services";
     import {
         selectedStudyIdStore,
         selectedTranscriptFileIdStore,
@@ -22,32 +23,21 @@
     let runTopicExtractionButtonContentElementRef: HTMLElement;
     let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
+    let isReRunTopicExtractionButtonLoading: boolean = false;
+
+    $: isReRunTopicExtractionButtonLoading =
+        !$selectedTranscriptStore ||
+        $selectedTranscriptStore.status ===
+            TranscriptStatus.RunningTopicExtraction;
+
     onMount(() => {
-        requestAnimationFrame(() => {
-            updateAILabelSlugColor();
+        requestAnimationFrame(async () => {
+            await utilsService.updateAILabelSlugColor(
+                runTopicExtractionButtonContentElementRef,
+                aiLabelSlugColor,
+            );
         });
     });
-
-    const updateAILabelSlugColor = (): void => {
-        const shadow: ShadowRoot | null | undefined =
-            runTopicExtractionButtonContentElementRef?.lastElementChild
-                ?.shadowRoot;
-        if (!shadow) {
-            return;
-        }
-
-        const style: HTMLStyleElement = document.createElement("style");
-        style.textContent = `
-                .cds--slug__text {
-                    color: ${aiLabelSlugColor} !important;
-                }
-
-                .cds--slug__text::before {
-                    background: ${aiLabelSlugColor} !important;
-                }
-            `;
-        shadow.appendChild(style);
-    };
 
     const getTopicCheckValidation = (
         checks: ValidationI[],
@@ -112,29 +102,32 @@
 {/if}
 
 <Button
-    class="run-topic-extraction-button"
     kind="tertiary"
     size="field"
-    skeleton={!$selectedTranscriptStore ||
-        $selectedTranscriptStore.status ===
-            TranscriptStatus.RunningTopicExtraction}
+    skeleton={isReRunTopicExtractionButtonLoading}
     on:click={() => {}}
-    on:mouseenter={() => {
+    on:mouseenter={async () => {
         aiLabelSlugColor = "white";
-        updateAILabelSlugColor();
+        await utilsService.updateAILabelSlugColor(
+            runTopicExtractionButtonContentElementRef,
+            aiLabelSlugColor,
+        );
     }}
-    on:mouseleave={() => {
+    on:mouseleave={async () => {
         aiLabelSlugColor = "var(--cds-button-tertiary)";
-        updateAILabelSlugColor();
+        await utilsService.updateAILabelSlugColor(
+            runTopicExtractionButtonContentElementRef,
+            aiLabelSlugColor,
+        );
     }}
 >
     <div
         bind:this={runTopicExtractionButtonContentElementRef}
-        class="run-topic-extraction-button-content-container"
+        class="button-with-ai-label-container"
     >
         Re-run topic extraction
         <AILabel
-            headerText="Suggested topics"
+            headerText="Suggest topics"
             bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."
             modelName="granite.13b.v2.instruct"
             modelLink=""
@@ -270,11 +263,6 @@
 <style lang="scss">
     @use "@carbon/type";
 
-    .run-topic-extraction-button-content-container {
-        display: flex;
-        gap: 0.25rem;
-    }
-
     .topic-card-container {
         display: flex;
         flex-direction: column;
@@ -345,11 +333,6 @@
         flex-direction: column;
         gap: 1rem;
         padding: 1rem 2rem;
-    }
-
-    :global(.run-topic-extraction-button) {
-        width: fit-content;
-        padding-right: 12px;
     }
 
     :global(.uncertain-quality-tag) {

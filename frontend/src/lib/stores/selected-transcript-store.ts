@@ -1,4 +1,4 @@
-import type { TranscriptFileI } from "$lib/models";
+import { TranscriptStatus, type TranscriptFileI } from "$lib/models";
 import { derived, writable, type Readable, type Writable } from "svelte/store";
 import { selectedStudyStore } from "./selected-study-store";
 
@@ -20,4 +20,13 @@ export const selectedTranscriptStore: Readable<TranscriptFileI | null> =
                 ) || null;
             return transcriptSelected;
         },
+    );
+
+export const isParticipantIdentificationRunningStore: Readable<boolean> =
+    derived(
+        selectedTranscriptStore,
+        ($selectedTranscriptStore) =>
+            $selectedTranscriptStore !== null &&
+            $selectedTranscriptStore.status ===
+                TranscriptStatus.RunningParticipantIdentification,
     );

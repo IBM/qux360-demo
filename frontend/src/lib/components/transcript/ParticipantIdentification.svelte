@@ -2,6 +2,7 @@
     import { AILabel } from "$lib/common";
     import { TranscriptStatus, type DropdownItem } from "$lib/models";
     import {
+        isParticipantIdentificationRunningStore,
         selectedStudyIdStore,
         selectedTranscriptFileIdStore,
         selectedTranscriptStore,
@@ -51,7 +52,7 @@
             modelLink=""
         />
     </div>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status === TranscriptStatus.RunningParticipantIdentification}
+    {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <DropdownSkeleton />
     {:else if $selectedTranscriptStore.participant.validation}
         <div class="participant-dropdown-container">

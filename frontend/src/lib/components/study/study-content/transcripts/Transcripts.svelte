@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { TRANSCRIPT_STATUS_MAP, UploadTranscriptFiles } from "$lib/common";
+    import {
+        AILabel,
+        TRANSCRIPT_STATUS_MAP,
+        UploadTranscriptFiles,
+    } from "$lib/common";
     import {
         TranscriptState,
         TranscriptStatus,
@@ -10,7 +14,11 @@
         type UploadTranscriptFileSuccessI,
     } from "$lib/models";
     import { apiService, utilsService } from "$lib/services";
-    import { selectedStudyIdStore, studiesStore } from "$lib/stores";
+    import {
+        selectedStudyIdStore,
+        selectedStudyStore,
+        studiesStore,
+    } from "$lib/stores";
     import {
         Button,
         Checkbox,
@@ -18,10 +26,14 @@
         Search,
         Stack,
     } from "carbon-components-svelte";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { TranscriptCard } from ".";
 
     export let transcriptFiles: TranscriptFileI[];
+
+    let anonymizeButtonContentElementRef: HTMLElement;
+    let suggestTopicsButtonContentElementRef: HTMLElement;
+    let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
     let filteredTranscripts: TranscriptFileI[] = [];
     let searchTranscriptValue: string = "";
@@ -34,6 +46,8 @@
     let allSelected: boolean = false;
     let noneSelected: boolean = false;
     let mixedSelection: boolean = false;
+
+    let isRunningAction: boolean = false;
 
     let isUploadTranscriptsModalOpen: boolean = false;
 
@@ -79,6 +93,15 @@
 
     $: mixedSelection = !allSelected && !noneSelected;
 
+    $: if (mixedSelection || allSelected) {
+        updateAILabelSlugColors();
+    }
+
+    $: if (!isRunningAction) {
+        aiLabelSlugColor = "var(--cds-button-tertiary)";
+        updateAILabelSlugColors();
+    }
+
     onMount(() => {
         uploadedTranscriptFiles = transcriptFiles.map(
             (transcriptFile: TranscriptFileI) => {
@@ -90,6 +113,20 @@
             },
         );
     });
+
+    const updateAILabelSlugColors = async (): Promise<void> => {
+        await tick();
+
+        await utilsService.updateAILabelSlugColor(
+            anonymizeButtonContentElementRef,
+            aiLabelSlugColor,
+        );
+
+        await utilsService.updateAILabelSlugColor(
+            suggestTopicsButtonContentElementRef,
+            aiLabelSlugColor,
+        );
+    };
 
     const handleUploadTranscriptsButtonClick = (): void => {
         isUploadTranscriptsModalOpen = true;
@@ -109,6 +146,21 @@
 
     const updateTranscriptSelection = (name: string, value: boolean): void => {
         checkedTranscriptsMap[name] = value;
+    };
+
+    const runTranscriptsSelectedAnonymization = async (): Promise<void> => {
+        isRunningAction = true;
+        if (!$selectedStudyStore) {
+            return;
+        }
+
+        for (let i = 0; i < filteredTranscripts.length; i++) {
+            await studiesStore.runTranscriptSpeakerAnonymization(
+                $selectedStudyStore,
+                filteredTranscripts[i].id!,
+            );
+        }
+        isRunningAction = false;
     };
 
     const handleCancelModalButtonClick = (): void => {
@@ -217,50 +269,130 @@
                 </div>
             </div>
         </Stack>
-        <Button kind="primary" on:click={handleUploadTranscriptsButtonClick}>
-            Upload transcripts
-        </Button>
+        <div class="buttons-container">
+            {#if mixedSelection || allSelected}
+                <Button
+                    kind="tertiary"
+                    size="field"
+                    skeleton={isRunningAction}
+                    on:click={runTranscriptsSelectedAnonymization}
+                    on:mouseenter={async () => {
+                        aiLabelSlugColor = "white";
+                        await utilsService.updateAILabelSlugColor(
+                            anonymizeButtonContentElementRef,
+                            aiLabelSlugColor,
+                        );
+                    }}
+                    on:mouseleave={async () => {
+                        aiLabelSlugColor = "var(--cds-button-tertiary)";
+                        await utilsService.updateAILabelSlugColor(
+                            anonymizeButtonContentElementRef,
+                            aiLabelSlugColor,
+                        );
+                    }}
+                >
+                    <div
+                        bind:this={anonymizeButtonContentElementRef}
+                        class="button-with-ai-label-container"
+                    >
+                        Anonymize
+                        <AILabel
+                            headerText="Anonymize"
+                            bodyText="AI is used to identify sensitive entities to anonymize, such as names, locations, and organizations."
+                            modelName="granite.13b.v2.instruct"
+                            modelLink=""
+                            alignment="bottom-right"
+                            kind="inline"
+                        />
+                    </div>
+                </Button>
+                <Button
+                    kind="tertiary"
+                    size="field"
+                    skeleton={isRunningAction}
+                    on:click={() => {}}
+                    on:mouseenter={async () => {
+                        aiLabelSlugColor = "white";
+                        await utilsService.updateAILabelSlugColor(
+                            suggestTopicsButtonContentElementRef,
+                            aiLabelSlugColor,
+                        );
+                    }}
+                    on:mouseleave={async () => {
+                        aiLabelSlugColor = "var(--cds-button-tertiary)";
+                        await utilsService.updateAILabelSlugColor(
+                            suggestTopicsButtonContentElementRef,
+                            aiLabelSlugColor,
+                        );
+                    }}
+                >
+                    <div
+                        bind:this={suggestTopicsButtonContentElementRef}
+                        class="button-with-ai-label-container"
+                    >
+                        Suggest topics
+                        <AILabel
+                            headerText="Suggest topics"
+                            bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."
+                            modelName="granite.13b.v2.instruct"
+                            modelLink=""
+                            alignment="bottom-right"
+                            kind="inline"
+                        />
+                    </div>
+                </Button>
+            {/if}
+
+            <Button
+                kind="primary"
+                on:click={handleUploadTranscriptsButtonClick}
+            >
+                Upload transcripts
+            </Button>
+        </div>
     </div>
 
-    <div class="select-buttons">
-        {#if mixedSelection}
-            <Button
-                class="select-button"
-                kind="ghost"
-                size="small"
-                on:click={handleSelectAll}
-            >
-                Select all
-            </Button>
+    {#if filteredTranscripts.length > 0}
+        <div class="select-buttons">
+            {#if mixedSelection}
+                <Button
+                    class="select-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={handleSelectAll}
+                >
+                    Select all
+                </Button>
 
-            <Button
-                class="deselect-button"
-                kind="ghost"
-                size="small"
-                on:click={handleDeselectAll}
-            >
-                Deselect all
-            </Button>
-        {:else if allSelected}
-            <Button
-                class="deselect-button"
-                kind="ghost"
-                size="small"
-                on:click={handleDeselectAll}
-            >
-                Deselect all
-            </Button>
-        {:else}
-            <Button
-                class="select-button"
-                kind="ghost"
-                size="small"
-                on:click={handleSelectAll}
-            >
-                Select all
-            </Button>
-        {/if}
-    </div>
+                <Button
+                    class="deselect-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={handleDeselectAll}
+                >
+                    Deselect all
+                </Button>
+            {:else if allSelected}
+                <Button
+                    class="deselect-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={handleDeselectAll}
+                >
+                    Deselect all
+                </Button>
+            {:else}
+                <Button
+                    class="select-button"
+                    kind="ghost"
+                    size="small"
+                    on:click={handleSelectAll}
+                >
+                    Select all
+                </Button>
+            {/if}
+        </div>
+    {/if}
 
     {#if filteredTranscripts.length > 0}
         <Stack gap={5}>
