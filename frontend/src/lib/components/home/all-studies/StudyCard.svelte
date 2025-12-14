@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { STUDY_STATUS_MAP, TRANSCRIPT_STATUS_MAP } from "$lib/common";
+    import {
+        AISettingsModal,
+        STUDY_STATUS_MAP,
+        TRANSCRIPT_STATUS_MAP,
+    } from "$lib/common";
     import {
         StudyStatus,
         TranscriptState,
@@ -14,7 +18,7 @@
         TooltipDefinition,
     } from "carbon-components-svelte";
     import { TrashCan } from "carbon-icons-svelte";
-    import { AISettingsModal, DeleteStudyModal, RenameStudyModal } from ".";
+    import { DeleteStudyModal, RenameStudyModal } from ".";
 
     export let study: StudyI;
 

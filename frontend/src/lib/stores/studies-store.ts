@@ -4,6 +4,7 @@ import {
     TranscriptState,
     TranscriptStatus,
     ValidationStatus,
+    ValidationStrategy,
     type EntityAnonymizationResponse,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
@@ -520,6 +521,26 @@ const createStudiesStore = () => {
                     const updatedStudy: StudyI = {
                         ...study,
                         transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
+        updateValidationStrategy: (
+            studyId: string,
+            validationStrategy: ValidationStrategy,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        validation_strategy: validationStrategy,
                     };
 
                     updatedStudy.status = computeStudyStatus(updatedStudy);

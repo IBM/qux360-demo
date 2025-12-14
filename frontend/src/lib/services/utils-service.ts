@@ -82,11 +82,8 @@ class UtilsService {
             );
 
         return {
-            id: serializableStudy.id,
-            name: serializableStudy.name,
-            description: serializableStudy.description,
+            ...serializableStudy,
             transcriptFiles: transcriptFiles,
-            status: serializableStudy.status,
         };
     }
 
@@ -103,11 +100,8 @@ class UtilsService {
             );
 
         return {
-            id: study.id,
-            name: study.name,
-            description: study.description,
+            ...study,
             transcriptFiles: serializedTranscriptFiles,
-            status: study.status,
         };
     }
 }

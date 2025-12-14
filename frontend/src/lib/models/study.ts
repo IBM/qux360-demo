@@ -29,12 +29,19 @@ export interface ExtendedStudyStatus {
 // Study Interfaces
 // ─────────────────────────────────────────────
 
+export enum ValidationStrategy {
+    Strictest = "Strictest",
+    Consensus = "Consensus",
+    Majority = "Majority",
+}
+
 export interface StudyI {
     id: string;
     name: string;
     description: string;
     transcriptFiles: TranscriptFileI[];
     status: StudyStatus;
+    validation_strategy: ValidationStrategy;
 }
 
 export interface SerializableStudyI {
@@ -43,4 +50,5 @@ export interface SerializableStudyI {
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
     status: StudyStatus;
+    validation_strategy: ValidationStrategy;
 }

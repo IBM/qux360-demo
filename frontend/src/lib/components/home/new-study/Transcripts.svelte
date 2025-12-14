@@ -3,6 +3,7 @@
     import {
         StudyStatus,
         UploadedTranscriptFileStatus,
+        ValidationStrategy,
         type ProgressStepI,
         type StudyI,
         type TranscriptFileI,
@@ -54,6 +55,7 @@
             description: studyDescription,
             transcriptFiles: transcriptFiles,
             status: StudyStatus.Ready,
+            validation_strategy: ValidationStrategy.Strictest,
         };
         loadingRequestStore.startLoadingRequest();
         await studiesStore.add(newStudy);

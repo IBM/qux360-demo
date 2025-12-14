@@ -4,6 +4,7 @@ import {
     TranscriptState,
     TranscriptStatus,
     ValidationStatus,
+    ValidationStrategy,
     type ExtendedStudyStatus,
     type ExtendedTranscriptStatus,
     type ExtendedValidationStatus,
@@ -137,6 +138,13 @@ export const VALIDATION_STATUS_MAP: Record<
         secondaryIcon: ErrorOutline,
         iconColor: "#DA1E28",
     },
+};
+
+export const VALIDATION_STRATEGY_MAP: Record<ValidationStrategy, string> = {
+    [ValidationStrategy.Strictest]: "Show worst status",
+    [ValidationStrategy.Consensus]:
+        "All validations must agree on high quality, otherwise show uncertain quality",
+    [ValidationStrategy.Majority]: "Show most frequently occurring status",
 };
 
 export enum TranscriptContentTabID {
