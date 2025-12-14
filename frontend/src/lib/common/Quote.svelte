@@ -6,7 +6,7 @@
     export let entity: string = "";
 
     const highlightEntity = (statement: string, entity: string): string => {
-        if (!entity) return statement;
+        if (!entity) return statement.trim();
 
         const escapedEntity: string = entity.replace(
             /[.*+?^${}()|[\]\\]/g,
@@ -14,10 +14,9 @@
         );
         const regex: RegExp = new RegExp(`\\b(${escapedEntity})\\b`, "gi");
 
-        return statement.replace(
-            regex,
-            "<strong class='bold-entity'>$1</strong>",
-        );
+        return statement
+            .trim()
+            .replace(regex, "<strong class='bold-entity'>$1</strong>");
     };
 
     const handleTranscriptLineHeaderClick = (lineNumber: number): void => {
@@ -33,9 +32,9 @@
     };
 </script>
 
-<div class="transcript-line-container">
+<div class="quote-container">
     <span
-        class="transcript-line-header"
+        class="quote-header"
         on:click={() => {
             handleTranscriptLineHeaderClick(line_number);
         }}
@@ -44,28 +43,32 @@
         <strong>•</strong>
         {timestamp}
     </span>
-    <span>
-        {@html highlightEntity(quote, entity)}
+    <span class="quote-text">
+        "{@html highlightEntity(quote, entity)}"
     </span>
 </div>
 
 <style lang="scss">
     @use "@carbon/type";
 
-    .transcript-line-container {
+    .quote-container {
         display: flex;
         flex-direction: column;
         @include type.type-style("label-02");
         line-height: 1.125rem;
     }
 
-    .transcript-line-header {
+    .quote-header {
         width: fit-content;
     }
 
-    .transcript-line-header:hover {
+    .quote-header:hover {
         cursor: pointer;
         opacity: 0.5;
+    }
+
+    .quote-text {
+        font-style: italic;
     }
 
     :global(.bold-entity) {
