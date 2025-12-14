@@ -39,6 +39,64 @@ const createStudiesStore = () => {
         return StudyStatus.NeedsReview;
     };
 
+    const runTranscriptAnonymization = async (
+        study: StudyI,
+        transcriptFileId: number,
+        anonymizationFn: (
+            transcriptFile: TranscriptFileI,
+        ) => Promise<Partial<TranscriptFileI>>,
+    ) => {
+        const transcriptFileIndex: number = study.transcriptFiles.findIndex(
+            (t: TranscriptFileI) => t.id === transcriptFileId,
+        );
+        if (transcriptFileIndex === -1) {
+            return;
+        }
+
+        const transcriptFile: TranscriptFileI =
+            study.transcriptFiles[transcriptFileIndex];
+
+        if (
+            [
+                TranscriptStatus.ReadyToIdentifyParticipants,
+                TranscriptStatus.RunningParticipantIdentification,
+                TranscriptStatus.ParticipantNeedsReview,
+            ].includes(transcriptFile.status)
+        ) {
+            return;
+        }
+
+        transcriptFile.status = TranscriptStatus.RunningAnonymization;
+        study.transcriptFiles[transcriptFileIndex] = transcriptFile;
+        study.status = computeStudyStatus(study);
+
+        await studiesCacheService.update(study);
+        update((studies: StudyI[]) =>
+            studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+        );
+
+        await new Promise((r) => setTimeout(r, 500));
+
+        const anonymizationData: Partial<TranscriptFileI> =
+            await anonymizationFn(transcriptFile);
+
+        const updatedTranscriptFile: TranscriptFileI = {
+            ...transcriptFile,
+            ...anonymizationData,
+            status: TranscriptStatus.ReadyForAnalysis,
+        };
+
+        study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+        study.status = computeStudyStatus(study);
+
+        await studiesCacheService.update(study);
+        update((studies: StudyI[]) =>
+            studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+        );
+
+        await new Promise((r) => setTimeout(r, 500));
+    };
+
     const getParticipantExplanation = (
         participantName: string,
         validation: ValidationI | null,
@@ -202,79 +260,67 @@ const createStudiesStore = () => {
             study: StudyI,
             transcriptFileId: number,
         ) => {
-            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
-                (transcriptFile: TranscriptFileI) =>
-                    transcriptFile.id === transcriptFileId,
+            await runTranscriptAnonymization(
+                study,
+                transcriptFileId,
+                async (transcriptFile: TranscriptFileI) => {
+                    const data: SpeakerAnonymizationResponse =
+                        await apiService.getSpeakerAnonymizationMap(
+                            transcriptFile.id!,
+                        );
+
+                    return {
+                        speaker_anonymization_map:
+                            data.speakers_anonymization_map,
+                    };
+                },
             );
-            if (transcriptFileIndex === -1) {
-                return;
-            }
-
-            const transcriptFile: TranscriptFileI =
-                study.transcriptFiles[transcriptFileIndex];
-            if (
-                [
-                    TranscriptStatus.ReadyToIdentifyParticipants,
-                    TranscriptStatus.RunningParticipantIdentification,
-                    TranscriptStatus.ParticipantNeedsReview,
-                ].includes(transcriptFile.status)
-            ) {
-                return;
-            }
-
-            transcriptFile.status = TranscriptStatus.RunningAnonymization;
-
-            const data: SpeakerAnonymizationResponse =
-                await apiService.getSpeakerAnonymizationMap(transcriptFile.id!);
-
-            transcriptFile.status = TranscriptStatus.ReadyForAnalysis;
-
-            const updatedTranscriptFile: TranscriptFileI = {
-                ...transcriptFile,
-                speaker_anonymization_map: data.speakers_anonymization_map,
-            };
-
-            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
-            study.status = computeStudyStatus(study);
-
-            await studiesCacheService.update(study);
-            update((studies: StudyI[]) =>
-                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
-            );
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
         },
         runTranscriptEntityAnonymization: async (
             study: StudyI,
             transcriptFileId: number,
         ) => {
-            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
-                (transcriptFile: TranscriptFileI) =>
-                    transcriptFile.id === transcriptFileId,
+            await runTranscriptAnonymization(
+                study,
+                transcriptFileId,
+                async (transcriptFile: TranscriptFileI) => {
+                    const data: EntityAnonymizationResponse =
+                        await apiService.getEntityAnonymizationMap(
+                            transcriptFile.id!,
+                        );
+
+                    return {
+                        entity_anonymization_map:
+                            data.entities_anonymization_map || {},
+                    };
+                },
             );
-            if (transcriptFileIndex === -1) {
-                return;
-            }
-            const transcriptFile: TranscriptFileI =
-                study.transcriptFiles[transcriptFileIndex];
+        },
+        runTranscriptSpeakerAndEntityAnonymization: async (
+            study: StudyI,
+            transcriptFileId: number,
+        ) => {
+            await runTranscriptAnonymization(
+                study,
+                transcriptFileId,
+                async (transcriptFile: TranscriptFileI) => {
+                    const [speakerData, entityData] = await Promise.all([
+                        apiService.getSpeakerAnonymizationMap(
+                            transcriptFile.id!,
+                        ),
+                        apiService.getEntityAnonymizationMap(
+                            transcriptFile.id!,
+                        ),
+                    ]);
 
-            const data: EntityAnonymizationResponse =
-                await apiService.getEntityAnonymizationMap(transcriptFile.id!);
-
-            const updatedTranscriptFile: TranscriptFileI = {
-                ...transcriptFile,
-                entity_anonymization_map: data.entities_anonymization_map || {},
-            };
-
-            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
-            study.status = computeStudyStatus(study);
-
-            await studiesCacheService.update(study);
-            update((studies: StudyI[]) =>
-                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+                    return {
+                        speaker_anonymization_map:
+                            speakerData.speakers_anonymization_map,
+                        entity_anonymization_map:
+                            entityData.entities_anonymization_map || {},
+                    };
+                },
             );
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
         },
         updateSpeakerAnonymizationAlias: (
             studyId: string,

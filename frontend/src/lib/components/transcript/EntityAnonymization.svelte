@@ -10,6 +10,7 @@
     import { apiService, utilsService } from "$lib/services";
     import {
         isParticipantIdentificationRunningStore,
+        isRunningAnonymizationStore,
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
@@ -57,6 +58,7 @@
     $: isRunAnonymizationButtonLoading =
         !$selectedTranscriptStore ||
         isRunningEntityAnonymization ||
+        $isRunningAnonymizationStore ||
         $isParticipantIdentificationRunningStore;
 
     $: !isRunAnonymizationButtonLoading,
@@ -112,7 +114,7 @@
         }));
     };
 
-    const runTranscriptEntityAnonymizationWithAI = async (): Promise<void> => {
+    const runTranscriptEntityAnonymization = async (): Promise<void> => {
         if (
             $selectedStudyStore &&
             $selectedTranscriptStore &&
@@ -247,7 +249,7 @@
             size="field"
             skeleton={isRunAnonymizationButtonLoading}
             on:click={async () => {
-                await runTranscriptEntityAnonymizationWithAI();
+                await runTranscriptEntityAnonymization();
             }}
         >
             <div
@@ -277,7 +279,7 @@
     </div>
     {#each Object.entries(extendedEntityAnonymizationMap) as [entity, extendedEntityAnonymization]}
         <div class="entity-anonymization-item-container">
-            {#if isRunningEntityAnonymization}
+            {#if isRunningEntityAnonymization || $isRunningAnonymizationStore}
                 <TextInputSkeleton />
                 <TextInputSkeleton />
             {:else}
@@ -300,7 +302,7 @@
             {/if}
         </div>
         {#if extendedEntityAnonymization.count > 0}
-            {#if isRunningEntityAnonymization}
+            {#if isRunningEntityAnonymization || $isRunningAnonymizationStore}
                 <SkeletonPlaceholder style="height: 94px; width: 100%;" />
             {:else}
                 <div class="mentions-container">

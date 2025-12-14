@@ -38,3 +38,6 @@ export const isParticipantNeedsReviewStore: Readable<boolean> = derived(
         $selectedTranscriptStore.status ===
             TranscriptStatus.ParticipantNeedsReview,
 );
+
+export const isRunningAnonymizationStore: Writable<boolean> =
+    writable<boolean>(false);

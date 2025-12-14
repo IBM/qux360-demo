@@ -6,6 +6,7 @@
     import {
         isParticipantIdentificationRunningStore,
         isParticipantNeedsReviewStore,
+        isRunningAnonymizationStore,
         selectedStudyStore,
         selectedTranscriptStore,
         studiesStore,
@@ -15,12 +16,15 @@
 
     let speakerAnonymizationMap: SpeakerAnonymizationMap | null = null;
 
+    let isRunningAnonymization: boolean = false;
+
     $: if ($selectedTranscriptStore) {
         speakerAnonymizationMap =
             $selectedTranscriptStore.speaker_anonymization_map;
     }
 
     const runTranscriptSpeakerAnonymization = async (): Promise<void> => {
+        isRunningAnonymization = true;
         if (
             $selectedStudyStore &&
             $selectedTranscriptStore &&
@@ -31,6 +35,7 @@
                 $selectedTranscriptStore.id,
             );
         }
+        isRunningAnonymization = false;
     };
 
     const updateAlias = (speaker: string, alias: string): void => {
@@ -72,7 +77,7 @@
         >
             Run anonymization
         </Button>
-    {:else if $selectedTranscriptStore.status === TranscriptStatus.RunningAnonymization}
+    {:else if (isRunningAnonymization && $selectedTranscriptStore.status === TranscriptStatus.RunningAnonymization) || $isRunningAnonymizationStore}
         <Button skeleton size="field" />
     {:else if speakerAnonymizationMap}
         {#each Object.entries(speakerAnonymizationMap) as [name, alias]}

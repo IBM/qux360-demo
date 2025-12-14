@@ -15,6 +15,7 @@
     } from "$lib/models";
     import { apiService, utilsService } from "$lib/services";
     import {
+        isRunningAnonymizationStore,
         selectedStudyIdStore,
         selectedStudyStore,
         studiesStore,
@@ -148,19 +149,21 @@
         checkedTranscriptsMap[name] = value;
     };
 
-    const runTranscriptsSelectedAnonymization = async (): Promise<void> => {
+    const runSelectedTranscriptsAnonymization = async (): Promise<void> => {
         isRunningAction = true;
+        isRunningAnonymizationStore.set(true);
         if (!$selectedStudyStore) {
             return;
         }
 
         for (let i = 0; i < filteredTranscripts.length; i++) {
-            await studiesStore.runTranscriptSpeakerAnonymization(
+            await studiesStore.runTranscriptSpeakerAndEntityAnonymization(
                 $selectedStudyStore,
                 filteredTranscripts[i].id!,
             );
         }
         isRunningAction = false;
+        isRunningAnonymizationStore.set(false);
     };
 
     const handleCancelModalButtonClick = (): void => {
@@ -275,7 +278,7 @@
                     kind="tertiary"
                     size="field"
                     skeleton={isRunningAction}
-                    on:click={runTranscriptsSelectedAnonymization}
+                    on:click={runSelectedTranscriptsAnonymization}
                     on:mouseenter={async () => {
                         aiLabelSlugColor = "white";
                         await utilsService.updateAILabelSlugColor(
