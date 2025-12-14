@@ -328,38 +328,6 @@
         border-radius: 0.25rem;
     }
 
-    .topic-card-header-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .topic-card-header-internal-container {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .topic-card-title-text {
-        @include type.type-style("heading-02");
-    }
-
-    .topic-card-internal-container {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .topic-card-label {
-        @include type.type-style("body-compact-01");
-        font-weight: 700;
-        line-height: 1.125rem;
-    }
-
-    .topic-card-text {
-        @include type.type-style("body-compact-01");
-        line-height: 1.125rem;
-    }
-
     .overall-evaluation-card-container {
         display: flex;
         flex-direction: column;

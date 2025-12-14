@@ -107,4 +107,36 @@
         height: 1px;
         background-color: black;
     }
+
+    :global(.topic-card-header-container) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    :global(.topic-card-header-internal-container) {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    :global(.topic-card-title-text) {
+        @include type.type-style("heading-02");
+    }
+
+    :global(.topic-card-internal-container) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :global(.topic-card-label) {
+        @include type.type-style("body-compact-01");
+        font-weight: 700;
+        line-height: 1.125rem;
+    }
+
+    :global(.topic-card-text) {
+        @include type.type-style("body-compact-01");
+        line-height: 1.125rem;
+    }
 </style>
