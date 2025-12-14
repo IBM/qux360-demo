@@ -1,10 +1,6 @@
 <script lang="ts">
-    import {
-        AILabel,
-        PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
-        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
-    } from "$lib/common";
-    import { type DropdownItem } from "$lib/models";
+    import { AILabel } from "$lib/common";
+    import { TranscriptStatus, type DropdownItem } from "$lib/models";
     import {
         selectedStudyIdStore,
         selectedTranscriptFileIdStore,
@@ -55,7 +51,7 @@
             modelLink=""
         />
     </div>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status}
+    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status === TranscriptStatus.RunningParticipantIdentification}
         <DropdownSkeleton />
     {:else if $selectedTranscriptStore.participant.validation}
         <div class="participant-dropdown-container">
@@ -63,13 +59,13 @@
                 size="xl"
                 selectedId={speakerSelectedId}
                 items={speakersDropdownItems}
-                invalid={$selectedTranscriptStore.status.status ===
-                    PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+                invalid={$selectedTranscriptStore.status ===
+                    TranscriptStatus.ParticipantNeedsReview}
                 on:select={updateParticipantExplanation}
             />
             {#if $selectedTranscriptStore.participant.showExplanation}
                 <div class="participant-explanation-container">
-                    {#if $selectedTranscriptStore.status.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+                    {#if $selectedTranscriptStore.status === TranscriptStatus.ParticipantNeedsReview}
                         <strong>Needs review:</strong>
                     {/if}
                     <span>

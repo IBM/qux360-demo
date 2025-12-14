@@ -1,15 +1,12 @@
 <script lang="ts">
+    import { AILabel, Quote } from "$lib/common";
     import {
-        AILabel,
-        Quote,
-        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
-    } from "$lib/common";
-    import type {
-        EntityAnonymizationMap,
-        ExtendedEntityAnonymizationMap,
-        SpeakerAnonymizationMap,
-        TranscriptFileI,
-        TranscriptLineI,
+        TranscriptStatus,
+        type EntityAnonymizationMap,
+        type ExtendedEntityAnonymizationMap,
+        type SpeakerAnonymizationMap,
+        type TranscriptFileI,
+        type TranscriptLineI,
     } from "$lib/models";
     import { apiService } from "$lib/services";
     import {
@@ -59,8 +56,8 @@
     $: isRunAnonymizationButtonLoading =
         isRunningEntityAnonymization ||
         !$selectedTranscriptStore ||
-        $selectedTranscriptStore.status.status ===
-            RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status;
+        $selectedTranscriptStore.status ===
+            TranscriptStatus.RunningParticipantIdentification;
 
     $: !isRunAnonymizationButtonLoading, updateAILabelSlugColor();
 

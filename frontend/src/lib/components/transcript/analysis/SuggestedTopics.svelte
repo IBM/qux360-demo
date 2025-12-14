@@ -1,14 +1,10 @@
 <script lang="ts">
+    import { AILabel, Quote, VALIDATION_STATUS_MAP } from "$lib/common";
     import {
-        AILabel,
-        Quote,
-        RUNNING_TOPIC_EXTRACTION_TRANSCRIPT_STATUS,
-        VALIDATION_STATUS_MAP,
-    } from "$lib/common";
-    import {
+        TranscriptStatus,
         ValidationStatus,
         type IdentifiedTopicI,
-        type IntervieweeValidation,
+        type ValidationI,
     } from "$lib/models";
     import {
         selectedStudyIdStore,
@@ -54,12 +50,10 @@
     };
 
     const getTopicCheckValidation = (
-        checks: IntervieweeValidation[],
+        checks: ValidationI[],
         method: string,
-    ): IntervieweeValidation | undefined => {
-        return checks.find(
-            (check: IntervieweeValidation) => check.method === method,
-        );
+    ): ValidationI | undefined => {
+        return checks.find((check: ValidationI) => check.method === method);
     };
 
     const handleApproveTopicButtonClick = (
@@ -122,8 +116,8 @@
     kind="tertiary"
     size="field"
     skeleton={!$selectedTranscriptStore ||
-        $selectedTranscriptStore.status.status ===
-            RUNNING_TOPIC_EXTRACTION_TRANSCRIPT_STATUS.status}
+        $selectedTranscriptStore.status ===
+            TranscriptStatus.RunningTopicExtraction}
     on:click={() => {}}
     on:mouseenter={() => {
         aiLabelSlugColor = "white";

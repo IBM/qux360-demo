@@ -1,19 +1,9 @@
 import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 
-export type SpeakerAnonymizationMap = { [name: string]: string };
-
-export type EntityAnonymizationMap = { [name: string]: string };
-
-export interface ExtendedEntityAnonymization {
-    alias: string;
-    count: number;
-    transcriptLines: TranscriptLineI[];
-}
-
-export type ExtendedEntityAnonymizationMap = {
-    [name: string]: ExtendedEntityAnonymization;
-};
+// ─────────────────────────────────────────────
+// Uploaded Transcript Interfaces
+// ─────────────────────────────────────────────
 
 export enum UploadedTranscriptFileStatus {
     Success = "success",
@@ -42,6 +32,10 @@ export interface UploadTranscriptFileResultI {
     errors: UploadTranscriptFileErrorI[];
 }
 
+// ─────────────────────────────────────────────
+// Transcript Status Interfaces
+// ─────────────────────────────────────────────
+
 export enum TranscriptState {
     Running = "running",
     Ready = "ready",
@@ -49,70 +43,28 @@ export enum TranscriptState {
     Finish = "finish",
 }
 
-export interface TranscriptStatusI {
+export enum TranscriptStatus {
+    ReadyToIdentifyParticipants = "Ready to identify participants",
+    RunningParticipantIdentification = "Running participant identification",
+    ParticipantNeedsReview = "Participant needs review",
+    ReadyForAnonymization = "Ready for anonymization",
+    RunningAnonymization = "Running anonymization",
+    ReadyForAnalysis = "Ready for analysis",
+    RunningTopicExtraction = "Running topic extraction",
+    TopicsNeedReview = "Topics need review",
+    Ready = "Ready",
+}
+
+export interface ExtendedTranscriptStatus {
+    description: string;
     icon: Component<CarbonIconProps>;
     iconColor: string;
     state: TranscriptState;
-    status: string;
-    description: string;
 }
 
-export interface IdentifiedParticipantI {
-    name: string;
-    explanation: string;
-    showExplanation: boolean;
-    validation: IntervieweeValidation | null;
-}
-
-export interface IdentifiedTopicI {
-    topic: string;
-    explanation: string;
-    quotes: QuoteI[];
-    validation: IntervieweeValidation | null;
-}
-
-export interface TranscriptFileI {
-    id?: number;
-    name: string;
-    file: File;
-    size: number;
-    type: string;
-    status: TranscriptStatusI;
-    speakers: string[];
-    participant: IdentifiedParticipantI;
-    speaker_anonymization_map: SpeakerAnonymizationMap | null;
-    entity_anonymization_map: EntityAnonymizationMap;
-    topics: IdentifiedTopicI[];
-}
-
-export enum SerializableTranscriptStatusIcon {
-    CheckmarkOutline = "CheckmarkOutline",
-    CircleFill = "CircleFill",
-    InProgress = "InProgress",
-    WarningFilled = "WarningFilled",
-}
-
-export interface SerializableTranscriptStatusI {
-    icon: SerializableTranscriptStatusIcon;
-    iconColor: string;
-    state: TranscriptState;
-    status: string;
-    description: string;
-}
-
-export interface SerializableTranscriptFileI {
-    id?: number;
-    name: string;
-    file: string;
-    size: number;
-    type: string;
-    status: SerializableTranscriptStatusI;
-    speakers: string[];
-    participant: IdentifiedParticipantI;
-    speaker_anonymization_map: SpeakerAnonymizationMap | null;
-    entity_anonymization_map: EntityAnonymizationMap;
-    topics: IdentifiedTopicI[];
-}
+// ─────────────────────────────────────────────
+// Validation Status Interfaces
+// ─────────────────────────────────────────────
 
 export enum ValidationStatus {
     Ok = "ok",
@@ -127,18 +79,7 @@ export interface ExtendedValidationStatus {
     iconColor: string;
 }
 
-export interface IntervieweeValidation {
-    status: ValidationStatus;
-    explanation: string;
-    errors: any[];
-    method: string | null;
-    metadata: IntervieweeMetadata | null;
-    checks: IntervieweeValidation[];
-    informational: boolean;
-    isApprovedByUser: boolean;
-}
-
-export interface IntervieweeMetadata {
+export interface ValidationMetadata {
     word_ratio?: number;
     prediction?: string;
     agreement?: boolean;
@@ -147,24 +88,79 @@ export interface IntervieweeMetadata {
     full_assessment?: string;
 }
 
-export interface IdentifyParticipantResponse {
-    message?: string;
-    error?: string;
+export interface ValidationI {
+    status: ValidationStatus;
+    explanation: string;
+    errors: any[];
+    method: string | null;
+    metadata: ValidationMetadata | null;
+    checks: ValidationI[];
+    informational: boolean;
+    isApprovedByUser: boolean;
+}
+
+// ─────────────────────────────────────────────
+// Anonymization Interfaces
+// ─────────────────────────────────────────────
+
+export type SpeakerAnonymizationMap = { [name: string]: string };
+
+export type EntityAnonymizationMap = { [name: string]: string };
+
+export interface ExtendedEntityAnonymization {
+    alias: string;
+    count: number;
+    transcriptLines: TranscriptLineI[];
+}
+
+export type ExtendedEntityAnonymizationMap = {
+    [name: string]: ExtendedEntityAnonymization;
+};
+
+// ─────────────────────────────────────────────
+// Transcript Interfaces
+// ─────────────────────────────────────────────
+
+export interface IdentifiedParticipantI {
+    name: string;
+    explanation: string;
+    showExplanation: boolean;
+    validation: ValidationI | null;
+}
+
+export interface IdentifiedTopicI {
+    topic: string;
+    explanation: string;
+    quotes: QuoteI[];
+    validation: ValidationI | null;
+}
+
+export interface TranscriptFileI {
+    id?: number;
+    name: string;
+    file: File;
+    size: number;
+    type: string;
+    status: TranscriptStatus;
     speakers: string[];
-    participant: string;
-    validation: IntervieweeValidation | null;
+    participant: IdentifiedParticipantI;
+    speaker_anonymization_map: SpeakerAnonymizationMap | null;
+    entity_anonymization_map: EntityAnonymizationMap;
+    topics: IdentifiedTopicI[];
 }
 
-export interface SpeakerAnonymizationResponse {
-    message?: string;
-    error?: string;
-    speakers_anonymization_map: SpeakerAnonymizationMap | null;
-}
-
-export interface EntityAnonymizationResponse {
-    message?: string;
-    error?: string;
-    entities_anonymization_map: EntityAnonymizationMap | null;
+export interface SerializableTranscriptFileI {
+    id?: number;
+    name: string;
+    file: string;
+    size: number;
+    type: string;
+    status: TranscriptStatus;
+    speakers: string[];
+    participant: IdentifiedParticipantI;
+    speaker_anonymization_map: SpeakerAnonymizationMap | null;
+    entity_anonymization_map: EntityAnonymizationMap;
+    topics: IdentifiedTopicI[];
 }
 
 export interface TranscriptLineI {
@@ -179,4 +175,28 @@ export interface QuoteI {
     timestamp: string;
     speaker: string;
     quote: string;
+}
+
+// ─────────────────────────────────────────────
+// Responses Interfaces
+// ─────────────────────────────────────────────
+
+export interface IdentifyParticipantResponse {
+    message?: string;
+    error?: string;
+    speakers: string[];
+    participant: string;
+    validation: ValidationI | null;
+}
+
+export interface SpeakerAnonymizationResponse {
+    message?: string;
+    error?: string;
+    speakers_anonymization_map: SpeakerAnonymizationMap | null;
+}
+
+export interface EntityAnonymizationResponse {
+    message?: string;
+    error?: string;
+    entities_anonymization_map: EntityAnonymizationMap | null;
 }

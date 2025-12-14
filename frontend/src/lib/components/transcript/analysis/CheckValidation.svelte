@@ -1,9 +1,9 @@
 <script lang="ts">
     import { VALIDATION_STATUS_MAP } from "$lib/common";
-    import { type IntervieweeValidation, ValidationStatus } from "$lib/models";
+    import { type ValidationI, ValidationStatus } from "$lib/models";
     import { Information } from "carbon-icons-svelte";
 
-    export let checkValidation: IntervieweeValidation | undefined;
+    export let checkValidation: ValidationI | undefined;
     export let labelText: string;
 </script>
 

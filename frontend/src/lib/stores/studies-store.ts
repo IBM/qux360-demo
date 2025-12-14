@@ -1,26 +1,17 @@
+import { TRANSCRIPT_STATUS_MAP } from "$lib/common";
 import {
-    NEEDS_REVIEW_STUDY_STATUS,
-    PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
-    READY_FOR_ANALYSIS_TRANSCRIPT_STATUS,
-    READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
-    READY_STUDY_STATUS,
-    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
-    RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
-    RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
-    TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS,
-} from "$lib/common";
-import {
+    StudyStatus,
     TranscriptState,
+    TranscriptStatus,
     ValidationStatus,
     type EntityAnonymizationResponse,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
-    type IntervieweeValidation,
     type SpeakerAnonymizationResponse,
     type StudyI,
-    type StudyStatusI,
     type TranscriptFileI,
     type UploadTranscriptFileSuccessI,
+    type ValidationI,
 } from "$lib/models";
 import { apiService, studiesCacheService } from "$lib/services";
 import { writable } from "svelte/store";
@@ -31,50 +22,25 @@ const createStudiesStore = () => {
         studiesCacheService.getAllStudies(),
     );
 
-    const computeStudyStatus = (study: StudyI): StudyStatusI => {
+    const computeStudyStatus = (study: StudyI): StudyStatus => {
         const transcripts: TranscriptFileI[] = study.transcriptFiles;
 
         const needsReview = transcripts.some(
-            (t: TranscriptFileI) => t.status.state === TranscriptState.Review,
+            (t: TranscriptFileI) =>
+                TRANSCRIPT_STATUS_MAP[t.status].state ===
+                TranscriptState.Review,
         );
 
         if (!needsReview) {
-            return READY_STUDY_STATUS;
+            return StudyStatus.Ready;
         }
 
-        let participantReviewCount: number = transcripts.filter(
-            (t: TranscriptFileI) =>
-                t.status.status ===
-                PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status,
-        ).length;
-
-        let topicReviewCount: number = transcripts.filter(
-            (t: TranscriptFileI) =>
-                t.status.status === TOPICS_NEED_REVIEW_TRANSCRIPT_STATUS.status,
-        ).length;
-
-        let descriptionParts: string[] = [];
-
-        if (participantReviewCount > 0) {
-            descriptionParts.push(
-                `${participantReviewCount} transcript(s) need participant review`,
-            );
-        }
-        if (topicReviewCount > 0) {
-            descriptionParts.push(
-                `${topicReviewCount} transcript(s) need topic review`,
-            );
-        }
-
-        return {
-            ...NEEDS_REVIEW_STUDY_STATUS,
-            description: descriptionParts.join(". "),
-        };
+        return StudyStatus.NeedsReview;
     };
 
     const getParticipantExplanation = (
         participantName: string,
-        validation: IntervieweeValidation | null,
+        validation: ValidationI | null,
     ): string => {
         if (!validation) {
             return "";
@@ -100,11 +66,11 @@ const createStudiesStore = () => {
                     study.transcriptFiles[i];
 
                 if (
-                    transcriptFile.status.status ===
-                    READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS.status
+                    transcriptFile.status ===
+                    TranscriptStatus.ReadyToIdentifyParticipants
                 ) {
                     transcriptFile.status =
-                        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS;
+                        TranscriptStatus.RunningParticipantIdentification;
 
                     const data: IdentifyParticipantResponse =
                         await apiService.identifyParticipant(
@@ -114,16 +80,16 @@ const createStudiesStore = () => {
                     if (data.validation) {
                         if (data.validation.status !== ValidationStatus.Ok) {
                             transcriptFile.status =
-                                PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS;
+                                TranscriptStatus.ParticipantNeedsReview;
                         } else if (
                             data.validation.status === ValidationStatus.Ok
                         ) {
                             transcriptFile.status =
-                                READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS;
+                                TranscriptStatus.ReadyForAnonymization;
                         }
                     } else {
                         transcriptFile.status =
-                            PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS;
+                            TranscriptStatus.ParticipantNeedsReview;
                     }
 
                     const updatedTranscriptFile: TranscriptFileI = {
@@ -245,12 +211,12 @@ const createStudiesStore = () => {
             const transcriptFile: TranscriptFileI =
                 study.transcriptFiles[transcriptFileIndex];
 
-            transcriptFile.status = RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS;
+            transcriptFile.status = TranscriptStatus.RunningAnonymization;
 
             const data: SpeakerAnonymizationResponse =
                 await apiService.getSpeakerAnonymizationMap(transcriptFile.id!);
 
-            transcriptFile.status = READY_FOR_ANALYSIS_TRANSCRIPT_STATUS;
+            transcriptFile.status = TranscriptStatus.ReadyForAnalysis;
 
             const updatedTranscriptFile: TranscriptFileI = {
                 ...transcriptFile,
@@ -455,7 +421,7 @@ const createStudiesStore = () => {
                             } else {
                                 return {
                                     ...t,
-                                    status: READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
+                                    status: TranscriptStatus.ReadyForAnonymization,
                                     participant: {
                                         ...t.participant,
                                         showExplanation: false,

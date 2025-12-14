@@ -1,5 +1,12 @@
 <script lang="ts">
-    import type { StudyI } from "$lib/models";
+    import { STUDY_STATUS_MAP, TRANSCRIPT_STATUS_MAP } from "$lib/common";
+    import {
+        StudyStatus,
+        TranscriptState,
+        TranscriptStatus,
+        type StudyI,
+        type TranscriptFileI,
+    } from "$lib/models";
     import { selectedStudyIdStore } from "$lib/stores";
     import {
         OverflowMenu,
@@ -15,6 +22,10 @@
     let isAISettingsModalOpen: boolean = false;
     let isDeleteStudyModalOpen: boolean = false;
 
+    let studyDescription: string = "";
+
+    $: studyDescription = getStudyDescription(study.transcriptFiles);
+
     const handleStudyCardClick = (): void => {
         selectedStudyIdStore.set(study.id);
     };
@@ -29,6 +40,43 @@
 
     const handleDeleteStudyOptionClick = (): void => {
         isDeleteStudyModalOpen = true;
+    };
+
+    const getStudyDescription = (transcripts: TranscriptFileI[]): string => {
+        const needsReview = transcripts.some(
+            (t: TranscriptFileI) =>
+                TRANSCRIPT_STATUS_MAP[t.status].state ===
+                TranscriptState.Review,
+        );
+
+        if (!needsReview) {
+            return STUDY_STATUS_MAP[StudyStatus.Ready].description;
+        }
+
+        let participantReviewCount: number = transcripts.filter(
+            (t: TranscriptFileI) =>
+                t.status === TranscriptStatus.ParticipantNeedsReview,
+        ).length;
+
+        let topicReviewCount: number = transcripts.filter(
+            (t: TranscriptFileI) =>
+                t.status === TranscriptStatus.TopicsNeedReview,
+        ).length;
+
+        let descriptionParts: string[] = [];
+
+        if (participantReviewCount > 0) {
+            descriptionParts.push(
+                `${participantReviewCount} transcript(s) need participant review`,
+            );
+        }
+        if (topicReviewCount > 0) {
+            descriptionParts.push(
+                `${topicReviewCount} transcript(s) need topic review`,
+            );
+        }
+
+        return descriptionParts.join(". ");
     };
 </script>
 
@@ -47,15 +95,15 @@
         >
             <div class="study-status-container">
                 <svelte:component
-                    this={study.status.icon}
-                    style="fill: {study.status.iconColor};"
+                    this={STUDY_STATUS_MAP[study.status].icon}
+                    style="fill: {STUDY_STATUS_MAP[study.status].iconColor};"
                 />
                 <span class="study-status-text">
-                    {study.status.status}
+                    {study.status}
                 </span>
             </div>
             <span slot="tooltip">
-                {study.status.description}
+                {studyDescription}
             </span>
         </TooltipDefinition>
     </div>

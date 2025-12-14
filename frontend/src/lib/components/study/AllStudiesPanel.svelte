@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { TRANSCRIPT_STATUS_MAP } from "$lib/common";
     import {
         TranscriptState,
         type StudyI,
@@ -62,16 +63,18 @@
                     >
                         <div
                             class="transcript-file-name"
-                            class:transcript-file-needs-review={transcriptFile
-                                .status.state === TranscriptState.Review}
+                            class:transcript-file-needs-review={TRANSCRIPT_STATUS_MAP[
+                                transcriptFile.status
+                            ].state === TranscriptState.Review}
                             use:truncate
                         >
                             {transcriptFile.name}
                         </div>
                         <svelte:component
-                            this={transcriptFile.status.icon}
+                            this={TRANSCRIPT_STATUS_MAP[transcriptFile.status]
+                                .icon}
                             style={`
-                                fill: ${transcriptFile.status.iconColor};
+                                fill: ${TRANSCRIPT_STATUS_MAP[transcriptFile.status].iconColor};
                                 flex-shrink: 0;
                             `}
                         />

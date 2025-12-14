@@ -1,10 +1,8 @@
 <script lang="ts">
-    import {
-        READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
-        UploadTranscriptFiles,
-    } from "$lib/common";
+    import { TRANSCRIPT_STATUS_MAP, UploadTranscriptFiles } from "$lib/common";
     import {
         TranscriptState,
+        TranscriptStatus,
         UploadedTranscriptFileStatus,
         type TranscriptFileI,
         type UploadedTranscriptFileI,
@@ -58,9 +56,11 @@
             const matchesFilter: boolean =
                 (!filterNeedsReview && !filterReady) ||
                 (filterNeedsReview &&
-                    transcript.status.state === TranscriptState.Review) ||
+                    TRANSCRIPT_STATUS_MAP[transcript.status].state ===
+                        TranscriptState.Review) ||
                 (filterReady &&
-                    transcript.status.state === TranscriptState.Ready);
+                    TRANSCRIPT_STATUS_MAP[transcript.status].state ===
+                        TranscriptState.Ready);
             return matchesSearch && matchesFilter;
         },
     );
@@ -164,7 +164,7 @@
                     file: original.file,
                     size: original.file.size,
                     type: original.file.type,
-                    status: READY_TO_IDENTIFY_PARTICIPANTS_TRANSCRIPT_STATUS,
+                    status: TranscriptStatus.ReadyToIdentifyParticipants,
                     speakers: [],
                     participant: {
                         name: "",

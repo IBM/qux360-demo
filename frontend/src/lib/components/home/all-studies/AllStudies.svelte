@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { STUDY_STATUS_MAP } from "$lib/common";
     import { StudyState, type StudyI } from "$lib/models";
     import { studiesStore } from "$lib/stores";
     import { Button, Checkbox, Search, Stack } from "carbon-components-svelte";
@@ -19,7 +20,8 @@
 
         const matchesFilter: boolean =
             !filterNeedsReview ||
-            (filterNeedsReview && study.status.state === StudyState.Review);
+            (filterNeedsReview &&
+                STUDY_STATUS_MAP[study.status].state === StudyState.Review);
 
         return matchesSearch && matchesFilter;
     });

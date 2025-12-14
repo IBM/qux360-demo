@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { TRANSCRIPT_STATUS_MAP } from "$lib/common";
     import type { TranscriptFileI } from "$lib/models";
     import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Checkbox, OverflowMenu } from "carbon-components-svelte";
@@ -35,11 +36,12 @@
             <span class="transcript-name">{transcript.name}</span>
             <div class="transcript-status-container">
                 <svelte:component
-                    this={transcript.status.icon}
-                    style="fill: {transcript.status.iconColor};"
+                    this={TRANSCRIPT_STATUS_MAP[transcript.status].icon}
+                    style="fill: {TRANSCRIPT_STATUS_MAP[transcript.status]
+                        .iconColor};"
                 />
                 <span class="transcript-status-text">
-                    {transcript.status.status}
+                    {transcript.status}
                 </span>
             </div>
         </div>

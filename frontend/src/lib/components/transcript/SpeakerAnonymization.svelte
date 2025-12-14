@@ -1,11 +1,8 @@
 <script lang="ts">
     import {
-        PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS,
-        READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS,
-        RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS,
-        RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS,
-    } from "$lib/common";
-    import { type SpeakerAnonymizationMap } from "$lib/models";
+        TranscriptStatus,
+        type SpeakerAnonymizationMap,
+    } from "$lib/models";
     import {
         selectedStudyStore,
         selectedTranscriptStore,
@@ -56,13 +53,13 @@
 
 <div class="speaker-anonymization-container">
     <h3 class="transcript-section-title">Speaker anonymization</h3>
-    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status.status === RUNNING_PARTICIPANT_IDENTIFICATION_TRANSCRIPT_STATUS.status}
+    {#if !$selectedTranscriptStore || $selectedTranscriptStore.status === TranscriptStatus.RunningParticipantIdentification}
         <SkeletonText width="17rem" />
-    {:else if $selectedTranscriptStore.status.status === PARTICIPANT_NEEDS_REVIEW_TRANSCRIPT_STATUS.status}
+    {:else if $selectedTranscriptStore.status === TranscriptStatus.ParticipantNeedsReview}
         <p class="confirm-participant-text">
             Confirm participant to start anonymization.
         </p>
-    {:else if $selectedTranscriptStore.status.status === READY_FOR_ANONYMIZATION_TRANSCRIPT_STATUS.status}
+    {:else if $selectedTranscriptStore.status === TranscriptStatus.ReadyForAnonymization}
         <Button
             class="run-anonymization-button"
             kind="primary"
@@ -73,7 +70,7 @@
         >
             Run anonymization
         </Button>
-    {:else if $selectedTranscriptStore.status.status === RUNNING_ANONYMIZATION_TRANSCRIPT_STATUS.status}
+    {:else if $selectedTranscriptStore.status === TranscriptStatus.RunningAnonymization}
         <Button skeleton size="field" />
     {:else if speakerAnonymizationMap}
         {#each Object.entries(speakerAnonymizationMap) as [name, alias]}

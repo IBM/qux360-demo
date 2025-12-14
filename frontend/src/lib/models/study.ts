@@ -2,40 +2,39 @@ import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 import type { SerializableTranscriptFileI, TranscriptFileI } from ".";
 
+// ─────────────────────────────────────────────
+// Study Status Interfaces
+// ─────────────────────────────────────────────
+
 export enum StudyState {
     Ready = "ready",
     Review = "review",
     Error = "error",
 }
 
-export interface StudyStatusI {
+export enum StudyStatus {
+    NeedsReview = "Needs review",
+    Ready = "Ready",
+    Error = "Error uploading transcript",
+}
+
+export interface ExtendedStudyStatus {
+    description: string;
     icon: Component<CarbonIconProps>;
     iconColor: string;
     state: StudyState;
-    status: string;
-    description: string;
 }
+
+// ─────────────────────────────────────────────
+// Study Interfaces
+// ─────────────────────────────────────────────
 
 export interface StudyI {
     id: string;
     name: string;
     description: string;
     transcriptFiles: TranscriptFileI[];
-    status: StudyStatusI;
-}
-
-export enum SerializableStudyStatusIcon {
-    CheckmarkOutline = "CheckmarkOutline",
-    WarningAltFilled = "WarningAltFilled",
-    WarningFilled = "WarningFilled",
-}
-
-export interface SerializableStudyStatusI {
-    icon: SerializableStudyStatusIcon;
-    iconColor: string;
-    state: StudyState;
-    status: string;
-    description: string;
+    status: StudyStatus;
 }
 
 export interface SerializableStudyI {
@@ -43,5 +42,5 @@ export interface SerializableStudyI {
     name: string;
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
-    status: SerializableStudyStatusI;
+    status: StudyStatus;
 }
