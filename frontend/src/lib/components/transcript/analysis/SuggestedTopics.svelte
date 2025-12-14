@@ -1,5 +1,11 @@
 <script lang="ts">
-    import { AILabel, Quote, VALIDATION_STATUS_MAP } from "$lib/common";
+    import {
+        AILabel,
+        AISettingsModal,
+        Quote,
+        VALIDATION_STATUS_MAP,
+        VALIDATION_STRATEGY_MAP,
+    } from "$lib/common";
     import {
         TranscriptStatus,
         ValidationStatus,
@@ -9,6 +15,7 @@
     import { utilsService } from "$lib/services";
     import {
         selectedStudyIdStore,
+        selectedStudyStore,
         selectedTranscriptFileIdStore,
         selectedTranscriptStore,
         studiesStore,
@@ -24,6 +31,8 @@
     let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
     let isReRunTopicExtractionButtonLoading: boolean = false;
+
+    let isAISettingsModalOpen: boolean = false;
 
     $: isReRunTopicExtractionButtonLoading =
         !$selectedTranscriptStore ||
@@ -183,12 +192,12 @@
             </div>
 
             <div class="topic-card-internal-container">
-                <span class="topic-card-label"
-                    >Why was this topic identified?</span
-                >
-                <span class="topic-card-text"
-                    >{identifiedTopic.explanation}</span
-                >
+                <span class="topic-card-label">
+                    Why was this topic identified?
+                </span>
+                <span class="topic-card-text">
+                    {identifiedTopic.explanation}
+                </span>
             </div>
 
             <div class="topic-card-internal-container">
@@ -223,11 +232,18 @@
                         <p>
                             Overall evaluation is determined using the strategy
                             selected in the
-                            <Link class="select-files-link" on:click={() => {}}>
+                            <Link
+                                class="link"
+                                on:click={() => {
+                                    isAISettingsModalOpen = true;
+                                }}
+                            >
                                 AI settings
                             </Link>
-                            for this study. Currently, the strategy is set to strictest:
-                            show worst status.
+                            for this study. Currently, the strategy is set to {$selectedStudyStore!.validation_strategy.toLowerCase()}:
+                            {VALIDATION_STRATEGY_MAP[
+                                $selectedStudyStore!.validation_strategy
+                            ].toLowerCase()}.
                         </p>
                     </Tooltip>
                 </div>
@@ -259,6 +275,15 @@
         </div>
     {/if}
 {/each}
+
+{#key isAISettingsModalOpen}
+    {#if isAISettingsModalOpen}
+        <AISettingsModal
+            bind:isModalOpen={isAISettingsModalOpen}
+            study={$selectedStudyStore!}
+        />
+    {/if}
+{/key}
 
 <style lang="scss">
     @use "@carbon/type";
