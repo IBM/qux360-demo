@@ -21,7 +21,14 @@
         selectedTranscriptStore,
         studiesStore,
     } from "$lib/stores";
-    import { Button, Link, Tag, Tooltip } from "carbon-components-svelte";
+    import {
+        Button,
+        Link,
+        SkeletonPlaceholder,
+        SkeletonText,
+        Tag,
+        Tooltip,
+    } from "carbon-components-svelte";
     import { Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
     import CheckValidation from "./CheckValidation.svelte";
@@ -42,6 +49,13 @@
         !$selectedTranscriptStore ||
         $selectedTranscriptStore.status ===
             TranscriptStatus.RunningTopicExtraction;
+
+    $: if (!isReRunTopicExtractionButtonLoading) {
+        utilsService.updateAILabelSlugColor(
+            runTopicExtractionButtonContentElementRef,
+            aiLabelSlugColor,
+        );
+    }
 
     onMount(() => {
         requestAnimationFrame(async () => {
@@ -108,23 +122,30 @@
                 {#each identifiedTopics as identifiedTopic, index (index)}
                     <div class="topic-name-container">
                         <div class="horizonal-line"></div>
-                        <Link
-                            class="link"
-                            on:click={() => {
-                                handleTopicNameLinkClick(identifiedTopic);
-                            }}
-                        >
-                            {identifiedTopic.topic}
-                        </Link>
-                        {#if identifiedTopic.validation}
-                            <svelte:component
-                                this={VALIDATION_STATUS_MAP[
-                                    identifiedTopic.validation.status
-                                ].principalIcon}
-                                style={`
+                        {#if isReRunTopicExtractionButtonLoading}
+                            <SkeletonText
+                                class="topic-name-loading"
+                                width="12rem"
+                            />
+                        {:else}
+                            <Link
+                                class="link"
+                                on:click={() => {
+                                    handleTopicNameLinkClick(identifiedTopic);
+                                }}
+                            >
+                                {identifiedTopic.topic}
+                            </Link>
+                            {#if identifiedTopic.validation}
+                                <svelte:component
+                                    this={VALIDATION_STATUS_MAP[
+                                        identifiedTopic.validation.status
+                                    ].principalIcon}
+                                    style={`
                                     fill: ${VALIDATION_STATUS_MAP[identifiedTopic.validation.status].iconColor};
                                 `}
-                            />
+                                />
+                            {/if}
                         {/if}
                     </div>
                 {/each}
@@ -173,131 +194,139 @@
 
 {#each identifiedTopics as identifiedTopic, index (index)}
     {#if identifiedTopic.validation}
-        <div class="topic-card-container">
-            <div class="topic-card-header-container">
-                <div class="topic-card-header-internal-container">
-                    <span class="topic-card-title-text">
-                        {identifiedTopic.topic}
+        {#if isReRunTopicExtractionButtonLoading}
+            <SkeletonPlaceholder style="height: 40rem; width: 100%;" />
+        {:else}
+            <div class="topic-card-container">
+                <div class="topic-card-header-container">
+                    <div class="topic-card-header-internal-container">
+                        <span class="topic-card-title-text">
+                            {identifiedTopic.topic}
+                        </span>
+                        {#if identifiedTopic.validation.status === ValidationStatus.Ok}
+                            <Tag type="cyan">
+                                {VALIDATION_STATUS_MAP[ValidationStatus.Ok]
+                                    .text}
+                            </Tag>
+                        {:else if identifiedTopic.validation.status === ValidationStatus.Check}
+                            <Tag class="uncertain-quality-tag">
+                                {VALIDATION_STATUS_MAP[ValidationStatus.Check]
+                                    .text}
+                            </Tag>
+                        {:else if identifiedTopic.validation.status === ValidationStatus.Iffy}
+                            <Tag type="red">
+                                {VALIDATION_STATUS_MAP[ValidationStatus.Iffy]
+                                    .text}
+                            </Tag>
+                        {/if}
+                    </div>
+
+                    <div class="topic-card-header-internal-container">
+                        <Button
+                            kind="tertiary"
+                            icon={Checkmark}
+                            hideTooltip
+                            size="small"
+                            on:click={() => {
+                                handleApproveTopicButtonClick(identifiedTopic);
+                            }}
+                        ></Button>
+                        <Button
+                            kind="tertiary"
+                            icon={Close}
+                            hideTooltip
+                            size="small"
+                            on:click={() => {
+                                handleRemoveTopicButtonClick(identifiedTopic);
+                            }}
+                        ></Button>
+                    </div>
+                </div>
+
+                <div class="topic-card-internal-container">
+                    <span class="topic-card-label">
+                        Why was this topic identified?
                     </span>
-                    {#if identifiedTopic.validation.status === ValidationStatus.Ok}
-                        <Tag type="cyan">
-                            {VALIDATION_STATUS_MAP[ValidationStatus.Ok].text}
-                        </Tag>
-                    {:else if identifiedTopic.validation.status === ValidationStatus.Check}
-                        <Tag class="uncertain-quality-tag">
-                            {VALIDATION_STATUS_MAP[ValidationStatus.Check].text}
-                        </Tag>
-                    {:else if identifiedTopic.validation.status === ValidationStatus.Iffy}
-                        <Tag type="red">
-                            {VALIDATION_STATUS_MAP[ValidationStatus.Iffy].text}
-                        </Tag>
-                    {/if}
+                    <span class="topic-card-text">
+                        {identifiedTopic.explanation}
+                    </span>
                 </div>
 
-                <div class="topic-card-header-internal-container">
-                    <Button
-                        kind="tertiary"
-                        icon={Checkmark}
-                        hideTooltip
-                        size="small"
-                        on:click={() => {
-                            handleApproveTopicButtonClick(identifiedTopic);
-                        }}
-                    ></Button>
-                    <Button
-                        kind="tertiary"
-                        icon={Close}
-                        hideTooltip
-                        size="small"
-                        on:click={() => {
-                            handleRemoveTopicButtonClick(identifiedTopic);
-                        }}
-                    ></Button>
+                <div class="topic-card-internal-container">
+                    <span class="topic-card-label">Supporting quotes</span>
+                    {#each identifiedTopic.quotes as quote (quote.index)}
+                        <Quote
+                            index={quote.index}
+                            timestamp={quote.timestamp}
+                            speaker={quote.speaker}
+                            quote={quote.quote}
+                        />
+                    {/each}
                 </div>
-            </div>
 
-            <div class="topic-card-internal-container">
-                <span class="topic-card-label">
-                    Why was this topic identified?
-                </span>
-                <span class="topic-card-text">
-                    {identifiedTopic.explanation}
-                </span>
-            </div>
-
-            <div class="topic-card-internal-container">
-                <span class="topic-card-label">Supporting quotes</span>
-                {#each identifiedTopic.quotes as quote (quote.index)}
-                    <Quote
-                        index={quote.index}
-                        timestamp={quote.timestamp}
-                        speaker={quote.speaker}
-                        quote={quote.quote}
-                    />
-                {/each}
-            </div>
-
-            <div class="overall-evaluation-card-container">
-                <div class="overall-evaluation-header-container">
-                    <svelte:component
-                        this={VALIDATION_STATUS_MAP[
-                            identifiedTopic.validation.status
-                        ].principalIcon}
-                        style={`
+                <div class="overall-evaluation-card-container">
+                    <div class="overall-evaluation-header-container">
+                        <svelte:component
+                            this={VALIDATION_STATUS_MAP[
+                                identifiedTopic.validation.status
+                            ].principalIcon}
+                            style={`
                             fill: ${VALIDATION_STATUS_MAP[identifiedTopic.validation.status].iconColor};
                         `}
-                    />
-                    <span class="overall-evaluation-title-text">
-                        Overall evaluation:
-                        {VALIDATION_STATUS_MAP[
-                            identifiedTopic.validation.status
-                        ].text}
-                    </span>
-                    <Tooltip class="overall-evaluation-tooltip" icon={Help}>
-                        <p>
-                            Overall evaluation is determined using the strategy
-                            selected in the
-                            <Link
-                                class="link"
-                                on:click={() => {
-                                    isAISettingsModalOpen = true;
-                                }}
-                            >
-                                AI settings
-                            </Link>
-                            for this study. Currently, the strategy is set to {$selectedStudyStore!.validation_strategy.toLowerCase()}:
-                            {VALIDATION_STRATEGY_MAP[
-                                $selectedStudyStore!.validation_strategy
-                            ].toLowerCase()}.
-                        </p>
-                    </Tooltip>
-                </div>
+                        />
+                        <span class="overall-evaluation-title-text">
+                            Overall evaluation:
+                            {VALIDATION_STATUS_MAP[
+                                identifiedTopic.validation.status
+                            ].text}
+                        </span>
+                        <Tooltip class="overall-evaluation-tooltip" icon={Help}>
+                            <p>
+                                Overall evaluation is determined using the
+                                strategy selected in the
+                                <Link
+                                    class="link"
+                                    on:click={() => {
+                                        isAISettingsModalOpen = true;
+                                    }}
+                                >
+                                    AI settings
+                                </Link>
+                                for this study. Currently, the strategy is set to
+                                {$selectedStudyStore!.validation_strategy.toLowerCase()}:
+                                {VALIDATION_STRATEGY_MAP[
+                                    $selectedStudyStore!.validation_strategy
+                                ].toLowerCase()}.
+                            </p>
+                        </Tooltip>
+                    </div>
 
-                <div class="overall-evaluation-card-content-container">
-                    <CheckValidation
-                        checkValidation={getTopicCheckValidation(
-                            identifiedTopic.validation.checks,
-                            "quote_validation",
-                        )}
-                        labelText="Quote validation"
-                    />
-                    <CheckValidation
-                        checkValidation={getTopicCheckValidation(
-                            identifiedTopic.validation.checks,
-                            "llm_validation",
-                        )}
-                        labelText="LLM validation"
-                    />
-                    <CheckValidation
-                        checkValidation={getTopicCheckValidation(
-                            identifiedTopic.validation.checks,
-                            "llm_assessment",
-                        )}
-                        labelText="Additional explanation"
-                    />
+                    <div class="overall-evaluation-card-content-container">
+                        <CheckValidation
+                            checkValidation={getTopicCheckValidation(
+                                identifiedTopic.validation.checks,
+                                "quote_validation",
+                            )}
+                            labelText="Quote validation"
+                        />
+                        <CheckValidation
+                            checkValidation={getTopicCheckValidation(
+                                identifiedTopic.validation.checks,
+                                "llm_validation",
+                            )}
+                            labelText="LLM validation"
+                        />
+                        <CheckValidation
+                            checkValidation={getTopicCheckValidation(
+                                identifiedTopic.validation.checks,
+                                "llm_assessment",
+                            )}
+                            labelText="Additional explanation"
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        {/if}
     {/if}
 {/each}
 
@@ -364,6 +393,11 @@
         flex-direction: column;
         gap: 1rem;
         padding: 1rem 2rem;
+    }
+
+    :global(.topic-name-loading) {
+        height: 18px;
+        margin-bottom: unset;
     }
 
     :global(.uncertain-quality-tag) {
