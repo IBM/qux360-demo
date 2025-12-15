@@ -1,6 +1,7 @@
 from http.client import HTTPException
 from typing import Any
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import tempfile
@@ -72,38 +73,52 @@ def init_db(path: Path):
         """
     )
     conn.commit()
-    return conn
+    conn.close()
 
 
-db_conn = init_db(DB_PATH)
-
-def save_file_to_db(conn: sqlite3.Connection, filename: str, content: bytes) -> int:
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO uploads (filename, content) VALUES (?, ?)",
-        (filename, content),
-    )
-    conn.commit()
-    return cur.lastrowid
+def get_connection() -> sqlite3.Connection:
+    return sqlite3.connect(DB_PATH)
 
 
-def update_file_in_db(conn: sqlite3.Connection, file_id: int, filename: str, content: bytes) -> int:
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE uploads SET content = ?, filename = ? WHERE id = ?",
-        (sqlite3.Binary(content), filename, file_id),
-    )
-    conn.commit()
-    return file_id
+def save_file_to_db(filename: str, content: bytes) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO uploads (filename, content) VALUES (?, ?)",
+            (filename, content),
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
 
 
-def get_file_from_db(conn: sqlite3.Connection, file_id: int):
-    cur = conn.cursor()
-    cur.execute("SELECT filename, content FROM uploads WHERE id = ?", (file_id, ))
-    row = cur.fetchone()
-    if row:
+def update_file_in_db(file_id: int, filename: str, content: bytes) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE uploads SET content = ?, filename = ? WHERE id = ?",
+            (sqlite3.Binary(content), filename, file_id),
+        )
+        conn.commit()
+        return file_id
+    finally:
+        conn.close()
+
+
+def get_file_from_db(file_id: int):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT filename, content FROM uploads WHERE id = ?", (file_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
         return {"filename": row[0], "content": row[1]}
-    return None
+    finally:
+        conn.close()
 
 
 def write_temp_file(row: dict[str, Any]) -> str:
@@ -115,18 +130,24 @@ def write_temp_file(row: dict[str, Any]) -> str:
 
     return tmp_path
 
+
+def upload_file_sync(file: UploadFile):
+    content = file.file.read()
+    print(f"📁 Uploading file: {file.filename}, size: {len(content)} bytes")
+    file_id = save_file_to_db(file.filename, content)
+    print(f"✅ File saved in DB with id: {file_id}")
+    return {"file_id": file_id}
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Save uploaded file and return its temp path"""
     try:
-        content = await file.read()
-        print(f"📁 Uploading file: {file.filename}, size: {len(content)} bytes")
-        file_id = save_file_to_db(db_conn, file.filename, content)
-        print(f"✅ File saved in DB with id: {file_id}")
-        return {"file_id": file_id}
+        return await run_in_threadpool(upload_file_sync, file)
     except Exception as e:
         print(f"❌ Upload failed: {e}")
         return {"error": str(e)}
+
 
 '''
 @app.post("/upload")
@@ -144,7 +165,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         transcript_json = JSONResponse(content=data)
         print(f"📁 Uploading file: {file.filename}, size: {len(transcript_json)} bytes")
-        file_id = save_file_to_db(db_conn, file.filename, transcript_json)
+        file_id = save_file_to_db(file.filename, transcript_json)
         print(f"✅ File saved in DB with id: {file_id}")
         return {"file_id": file_id}
     except Exception as e:
@@ -152,10 +173,11 @@ async def upload_file(file: UploadFile = File(...)):
         return {"error": str(e)}
 '''
 
-@app.get("/identify_participant/{file_id}")
-async def identify_participant(file_id: int):
+
+def identify_participant_sync(file_id: int):
     print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
-    row = get_file_from_db(db_conn, file_id)
+
+    row = get_file_from_db(file_id)
     if not row:
         return {
             "error": "file not found",
@@ -166,35 +188,48 @@ async def identify_participant(file_id: int):
 
     tmp_path = write_temp_file(row)
 
+    i = Interview(tmp_path)
+    speakers = i.get_speakers()
+    interviewee = i.identify_interviewee(m)
+
+    return {
+        "message": "Speakers found (participant identified)",
+        "speakers": speakers,
+        "participant": interviewee.result,
+        "validation": interviewee.validation,
+    }
+
+
+@app.get("/identify_participant/{file_id}")
+async def identify_participant(file_id: int):
     try:
-        i = Interview(tmp_path)
-        speakers: list[str] = i.get_speakers()
-        interviewee = i.identify_interviewee(m)
-        participant = interviewee.result
-        return {
-            "message": "Speakers found (participant identified)",
-            "speakers": speakers,
-            "participant": participant,
-            "validation": interviewee.validation,
-        }
+        return await run_in_threadpool(identify_participant_sync, file_id)
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"error": str(e), "speakers": [], "participant": "", "validation": None}
 
 
-@app.get("/speakers_anonymization_map/{file_id}")
-async def get_speakers_anonymization_map(file_id: int):
+def speakers_anonymization_map_sync(file_id: int):
     print(f"🔍 Building speakers anonymization map for file id: {file_id}")
-    row = get_file_from_db(db_conn, file_id)
+    row = get_file_from_db(file_id)
     if not row:
         return {"speakers_anonymization_map": {}, "error": "file not found"}
 
     tmp_path = write_temp_file(row)
 
+    i = Interview(tmp_path)
+    speakers_map = i.anonymize_speakers_generic()
+
+    return {
+        "message": "Speakers Anonymization map",
+        "speakers_anonymization_map": speakers_map,
+    }
+
+
+@app.get("/speakers_anonymization_map/{file_id}")
+async def get_speakers_anonymization_map(file_id: int):
     try:
-        i = Interview(tmp_path)
-        map = i.anonymize_speakers_generic()
-        return {"message": "Speakers Anonymization map", "speakers_anonymization_map": map}
+        return await run_in_threadpool(speakers_anonymization_map_sync, file_id)
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"speakers_anonymization_map": {}, "error": str(e)}
@@ -205,7 +240,7 @@ async def anonymize_speakers(speakers: SpeakersPayload):
     file_id = speakers.fileId
     anonymization_map = speakers.anonymization_map
     print(f"🔍 Anonymizing speakers for file id: {file_id} with map: {anonymization_map}")
-    row = get_file_from_db(db_conn, file_id)
+    row = get_file_from_db(file_id)
     if not row:
         return {"anonymized_speakers_map": "", "error": "file not found"}
 
@@ -235,7 +270,7 @@ async def anonymize_speakers(speakers: SpeakersPayload):
         with open(updated_tmp_path, "rb") as f:
             updated_content = f.read()
             filename = Path(row["filename"]).stem + ".xlsx"
-            file_id = update_file_in_db(db_conn, file_id, filename, updated_content)
+            file_id = update_file_in_db(file_id, filename, updated_content)
             print(f"✅ File updated in DB with id: {file_id}")
             return {"message": "Speakers anonymized", "anonymized_speakers_map": anonymized_map}
 
@@ -243,49 +278,56 @@ async def anonymize_speakers(speakers: SpeakersPayload):
         print(f"❌ qux360-demo failed: {e}")
         return {"anonymized_speakers_map": "", "error": str(e)}
 
-@app.get("/entities_anonymization_map/{file_id}")
-async def get_entities_anonymization_map(file_id: int):
+
+def entities_anonymization_map_sync(file_id: int):
     print(f"🔍 Building entities anonymization map for file id: {file_id}")
-    row = get_file_from_db(db_conn, file_id)
+    row = get_file_from_db(file_id)
     if not row:
         return {"entities_anonymization_map": {}, "error": "file not found"}
 
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
+    i = Interview(tmp_path)
+    entities = i.detect_entities()
+    entities_map = i.build_replacement_map(entities)
+
+    return {
+        "message": "Entities anonymization map",
+        "entities_anonymization_map": entities_map,
+    }
+
+
+@app.get("/entities_anonymization_map/{file_id}")
+async def get_entities_anonymization_map(file_id: int):
     try:
-        i = Interview(tmp_path)
-        entities = i.detect_entities()
-        map = i.build_replacement_map(entities)
-        return {"message": "Entities anonymization map", "entities_anonymization_map": map}
+        return await run_in_threadpool(entities_anonymization_map_sync, file_id)
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"entities_anonymization_map": {}, "error": str(e)}
 
 
-@app.get("/transcript/{file_id}")
-async def get_transcript(file_id: int):
-    row = get_file_from_db(db_conn, file_id)
+def transcript_sync(file_id: int):
+    row = get_file_from_db(file_id)
     if not row:
-        return {
-            "error": "file not found",
-        }
+        return {"error": "file not found"}
 
     tmp_path = write_temp_file(row)
 
+    i = Interview(tmp_path)
+    transcript_raw = i.transcript_raw
+    selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
+
+    return [
+        {"index": idx, **row}
+        for idx, row in enumerate(selected_df.to_dict(orient="records"))
+    ]
+
+
+@app.get("/transcript/{file_id}")
+async def get_transcript(file_id: int):
     try:
-        i = Interview(tmp_path)
-        transcript_raw = i.transcript_raw
-        selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
-        data = [
-            {"index": idx, **row}
-            for idx, row in enumerate(selected_df.to_dict(orient="records"))
-        ]
-
+        data = await run_in_threadpool(transcript_sync, file_id)
         return JSONResponse(content=data)
-
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"error": str(e)}
@@ -309,49 +351,87 @@ def json_to_xlsx_bytes(records: list[dict]) -> bytes:
 
     return buffer.getvalue()
 
-@app.post("/update_transcript")
-async def update_transcript(file_id: int, content: list[dict]):
-    row = get_file_from_db(db_conn, file_id)
-    if not row:
-        return {
-            "error": "file not found",
-        }
 
-    # Convert to XLSX bytes
+def update_transcript_sync(file_id: int, content: list[dict]):
+    row = get_file_from_db(file_id)
+    if not row:
+        return {"error": "file not found"}
+
     try:
         xlsx_bytes = json_to_xlsx_bytes(content)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise Exception(e)
 
-    # Update record in DB
+    # Update DB
+    filename = Path(row["filename"]).stem + ".xlsx"
+    updated_id = update_file_in_db(file_id, filename, xlsx_bytes)
+
+    print(f"✅ File updated in DB with id: {updated_id}")
+
+    return {
+        "message": "Transcript updated",
+        "updated_transcript": updated_id,
+    }
+
+
+@app.post("/update_transcript")
+async def update_transcript(file_id: int, content: list[dict]):
     try:
-        filename = Path(row["filename"]).stem + ".xlsx"
-        file_id = update_file_in_db(db_conn, file_id, filename, xlsx_bytes)
-        print(f"✅ File updated in DB with id: {file_id}")
-        return {"message": "Transcript updated", "updated_transcript": file_id}
+        return await run_in_threadpool(
+            update_transcript_sync,
+            file_id,
+            content,
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/interview_topics/{file_id}")
-async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: bool = True, interview_context: str = "General"):
+def get_interview_topics_sync(
+    file_id: int,
+    top_n: int,
+    explain: bool,
+    interview_context: str,
+):
     print(f"🔍 Getting suggested topics for interview with file id: {file_id}")
-    row = get_file_from_db(db_conn, file_id)
+
+    row = get_file_from_db(file_id)
     if not row:
         return {"interview_topics_result": None, "error": "file not found"}
 
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
+    tmp_path = write_temp_file(row)
 
+    i = Interview(tmp_path)
+    i.identify_interviewee(m)
+    topics_result = i.suggest_topics_top_down(
+        m,
+        top_n,
+        explain,
+        interview_context,
+    )
+
+    return {
+        "message": "Suggested topics result for interview",
+        "interview_topics_result": topics_result,
+    }
+
+
+@app.get("/interview_topics/{file_id}")
+async def get_suggested_topics_for_interview(
+    file_id: int, top_n=5, explain: bool = True, interview_context: str = "General"
+):
     try:
-        i = Interview(tmp_path)
-        i.identify_interviewee(m)
-        topics_result = i.suggest_topics_top_down(m, top_n, explain, interview_context)
-        return {"message": "Suggested topics result for interview", "interview_topics_result": topics_result}
+        return await run_in_threadpool(
+            get_interview_topics_sync,
+            file_id,
+            top_n,
+            explain,
+            interview_context,
+        )
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"interview_topics_result": None, "error": str(e)}
