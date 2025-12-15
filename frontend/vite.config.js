@@ -1,24 +1,31 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { defineConfig } from "vite";
 import { optimizeImports, optimizeCss } from "carbon-preprocess-svelte";
+import path from "path";
+import { sveltePreprocess } from "svelte-preprocess";
+import { defineConfig } from "vite";
 
-//console.log(import.meta.env.VITE_BACKEND_URL);
-
-
-const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || "http://localhost:8000";
-console.log("Backend URL is:", BACKEND_URL);
- 
 export default defineConfig({
-  plugins: [
-    svelte({
-      preprocess: [optimizeImports()]
-    }),
-    optimizeCss()
-  ],
-  root: '.',
-  server: {
-    host: '0.0.0.0',
-    port: 5173
-  }
+    plugins: [
+        svelte({
+            preprocess: [
+                sveltePreprocess({
+                    scss: {
+                        includePaths: ["src"],
+                    },
+                }),
+                optimizeImports(),
+            ],
+        }),
+        optimizeCss(),
+    ],
+    resolve: {
+        alias: {
+            $lib: path.resolve(__dirname, "src/lib"),
+        },
+    },
+    root: ".",
+    server: {
+        host: "0.0.0.0",
+        port: 5173,
+    },
 });
-
