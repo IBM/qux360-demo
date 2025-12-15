@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { Quote } from "$lib/common";
+    import { EditTopicModal, Quote } from "$lib/common";
     import type { IdentifiedTopicI } from "$lib/models";
+    import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Button, Link } from "carbon-components-svelte";
     import { Add, Edit } from "carbon-icons-svelte";
-    import EditTopicModal from "./EditTopicModal.svelte";
 
     export let identifiedTopics: IdentifiedTopicI[];
 
@@ -110,6 +110,7 @@
     {#if isEditTopicModalOpen && topicToEdit}
         <EditTopicModal
             bind:isModalOpen={isEditTopicModalOpen}
+            transcriptFileId={$selectedTranscriptFileIdStore}
             originalTopicName={topicToEdit.topic}
             topicName={topicToEdit.topic}
             topicDescription={topicToEdit.explanation}

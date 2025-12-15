@@ -2,6 +2,7 @@
     import {
         AILabel,
         AISettingsModal,
+        EditTopicModal,
         Quote,
         VALIDATION_STATUS_MAP,
         VALIDATION_STRATEGY_MAP,
@@ -24,7 +25,6 @@
     import { Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
     import CheckValidation from "./CheckValidation.svelte";
-    import EditTopicModal from "./EditTopicModal.svelte";
 
     export let identifiedTopics: IdentifiedTopicI[];
 
@@ -294,6 +294,7 @@
     {#if isEditTopicModalOpen && topicToEdit}
         <EditTopicModal
             bind:isModalOpen={isEditTopicModalOpen}
+            transcriptFileId={$selectedTranscriptFileIdStore}
             originalTopicName={topicToEdit.topic}
             topicName={topicToEdit.topic}
             topicDescription={topicToEdit.explanation}

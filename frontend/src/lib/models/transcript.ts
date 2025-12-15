@@ -177,6 +177,18 @@ export interface QuoteI {
     quote: string;
 }
 
+export interface IdentifiedTopicWithTranscriptI {
+    topic: IdentifiedTopicI;
+    transcriptFile: TranscriptFileI;
+}
+
+export interface TopicCardI {
+    id: string;
+    topic: IdentifiedTopicI;
+    transcriptFile: TranscriptFileI;
+    isOpen: boolean;
+}
+
 // ─────────────────────────────────────────────
 // Responses Interfaces
 // ─────────────────────────────────────────────

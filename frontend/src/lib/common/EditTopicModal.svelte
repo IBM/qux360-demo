@@ -1,11 +1,7 @@
 <script lang="ts">
     import { Quote } from "$lib/common";
     import type { QuoteI } from "$lib/models";
-    import {
-        selectedStudyIdStore,
-        selectedTranscriptFileIdStore,
-        studiesStore,
-    } from "$lib/stores";
+    import { selectedStudyIdStore, studiesStore } from "$lib/stores";
     import {
         Button,
         Modal,
@@ -15,6 +11,7 @@
     import { TrashCan } from "carbon-icons-svelte";
 
     export let isModalOpen: boolean;
+    export let transcriptFileId: number | undefined;
     export let originalTopicName: string;
     export let topicName: string;
     export let topicDescription: string;
@@ -31,10 +28,10 @@
     };
 
     const handleSaveButtonClick = (): void => {
-        if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
+        if ($selectedStudyIdStore && transcriptFileId) {
             studiesStore.updateTopic(
                 $selectedStudyIdStore,
-                $selectedTranscriptFileIdStore,
+                transcriptFileId,
                 originalTopicName,
                 topicName,
                 topicDescription,
