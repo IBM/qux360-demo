@@ -41,3 +41,6 @@ export const isParticipantNeedsReviewStore: Readable<boolean> = derived(
 
 export const isRunningAnonymizationStore: Writable<boolean> =
     writable<boolean>(false);
+
+export const isRunningTopicsSuggestionStore: Writable<boolean> =
+    writable<boolean>(false);

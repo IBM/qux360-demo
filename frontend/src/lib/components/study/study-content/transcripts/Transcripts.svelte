@@ -16,6 +16,7 @@
     import { apiService, utilsService } from "$lib/services";
     import {
         isRunningAnonymizationStore,
+        isRunningTopicsSuggestionStore,
         selectedStudyIdStore,
         selectedStudyStore,
         studiesStore,
@@ -156,14 +157,39 @@
             return;
         }
 
-        for (let i = 0; i < filteredTranscripts.length; i++) {
+        const selectedFilteredTranscripts: TranscriptFileI[] =
+            filteredTranscripts.filter(
+                (t: TranscriptFileI) => checkedTranscriptsMap[t.name],
+            );
+        for (let i = 0; i < selectedFilteredTranscripts.length; i++) {
             await studiesStore.runTranscriptSpeakerAndEntityAnonymization(
                 $selectedStudyStore,
-                filteredTranscripts[i].id!,
+                selectedFilteredTranscripts[i].id!,
             );
         }
         isRunningAction = false;
         isRunningAnonymizationStore.set(false);
+    };
+
+    const runSelectedTranscriptsTopicsSuggestion = async (): Promise<void> => {
+        isRunningAction = true;
+        isRunningTopicsSuggestionStore.set(true);
+        if (!$selectedStudyIdStore) {
+            return;
+        }
+
+        const selectedFilteredTranscripts: TranscriptFileI[] =
+            filteredTranscripts.filter(
+                (t: TranscriptFileI) => checkedTranscriptsMap[t.name],
+            );
+        for (let i = 0; i < selectedFilteredTranscripts.length; i++) {
+            await studiesStore.runSuggestTopics(
+                $selectedStudyIdStore,
+                selectedFilteredTranscripts[i].id!,
+            );
+        }
+        isRunningAction = false;
+        isRunningTopicsSuggestionStore.set(false);
     };
 
     const handleCancelModalButtonClick = (): void => {
@@ -313,7 +339,7 @@
                     kind="tertiary"
                     size="field"
                     skeleton={isRunningAction}
-                    on:click={() => {}}
+                    on:click={runSelectedTranscriptsTopicsSuggestion}
                     on:mouseenter={async () => {
                         aiLabelSlugColor = "white";
                         await utilsService.updateAILabelSlugColor(

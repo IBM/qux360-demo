@@ -12,6 +12,7 @@ import {
     type SpeakerAnonymizationResponse,
     type StudyI,
     type TranscriptFileI,
+    type TranscriptTopicsResponse,
     type UploadTranscriptFileSuccessI,
     type ValidationI,
 } from "$lib/models";
@@ -490,6 +491,83 @@ const createStudiesStore = () => {
                                     },
                                 };
                             }
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
+        runSuggestTopics: async (studyId: string, transcriptFileId: number) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map(
+                            (transcriptFile: TranscriptFileI) => {
+                                if (transcriptFile.id !== transcriptFileId)
+                                    return transcriptFile;
+
+                                return {
+                                    ...transcriptFile,
+                                    status: TranscriptStatus.RunningTopicExtraction,
+                                };
+                            },
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+
+            const transcriptTopicsData: TranscriptTopicsResponse =
+                await apiService.getTranscriptTopics(transcriptFileId);
+
+            if (!transcriptTopicsData.interview_topics_result) {
+                return;
+            }
+
+            const topics: IdentifiedTopicI[] =
+                transcriptTopicsData.interview_topics_result.result.map(
+                    (topic: IdentifiedTopicI, index: number) => ({
+                        ...topic,
+                        validation:
+                            transcriptTopicsData.interview_topics_result!
+                                .item_validations[index],
+                    }),
+                );
+
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            return {
+                                ...t,
+                                status: topics.every(
+                                    (topic: IdentifiedTopicI) =>
+                                        topic.validation?.status ===
+                                        ValidationStatus.Ok,
+                                )
+                                    ? TranscriptStatus.Ready
+                                    : TranscriptStatus.TopicsNeedReview,
+                                topics,
+                            };
                         });
 
                     const updatedStudy: StudyI = {

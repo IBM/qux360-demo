@@ -4,6 +4,7 @@ import type {
     SpeakerAnonymizationResponse,
     TranscriptFileI,
     TranscriptLineI,
+    TranscriptTopicsResponse,
     UploadTranscriptFileErrorI,
     UploadTranscriptFileResultI,
     UploadTranscriptFileSuccessI,
@@ -278,6 +279,45 @@ class ApiService {
             });
 
             return [];
+        }
+    }
+
+    public async getTranscriptTopics(
+        fileId: number,
+    ): Promise<TranscriptTopicsResponse> {
+        try {
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/interview_topics/${fileId}`,
+                {
+                    method: APIMethodsType.GET,
+                    headers: this.getHeaders(),
+                },
+            );
+
+            if (!response.ok) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Get transcript topics failed",
+                    subtitle: `HTTP error! Status: ${response.status}`,
+                });
+            }
+
+            const data: TranscriptTopicsResponse = await response.json();
+
+            if (data.error) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Get transcript topics failed",
+                    subtitle: data.error,
+                });
+            }
+
+            return data;
+        } catch (error) {
+            return {
+                error: "An error occurred while getting transcript topics",
+                interview_topics_result: null,
+            };
         }
     }
 }

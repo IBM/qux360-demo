@@ -315,9 +315,9 @@
                                 <SkeletonText paragraph />
                             {/each}
                         {:else}
-                            {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.line_number)}
+                            {#each extendedEntityAnonymization.transcriptLines as transcriptLine (transcriptLine.index)}
                                 <Quote
-                                    line_number={transcriptLine.line_number}
+                                    index={transcriptLine.index}
                                     timestamp={transcriptLine.timestamp}
                                     speaker={transcriptLine.speaker}
                                     quote={transcriptLine.statement}

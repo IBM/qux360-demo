@@ -164,14 +164,14 @@ export interface SerializableTranscriptFileI {
 }
 
 export interface TranscriptLineI {
-    line_number: number;
+    index: number;
     timestamp: string;
     speaker: string;
     statement: string;
 }
 
 export interface QuoteI {
-    line_number: number;
+    index: number;
     timestamp: string;
     speaker: string;
     quote: string;
@@ -211,4 +211,16 @@ export interface EntityAnonymizationResponse {
     message?: string;
     error?: string;
     entities_anonymization_map: EntityAnonymizationMap | null;
+}
+
+export interface InterviewTopicsResult {
+    result: IdentifiedTopicI[];
+    validation: ValidationI;
+    item_validations: ValidationI[];
+}
+
+export interface TranscriptTopicsResponse {
+    message?: string;
+    error?: string;
+    interview_topics_result: InterviewTopicsResult | null;
 }

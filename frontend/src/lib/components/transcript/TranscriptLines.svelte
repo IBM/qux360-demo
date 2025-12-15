@@ -122,10 +122,10 @@
                 <SkeletonText paragraph />
             {/each}
         {:else}
-            {#each filteredTranscriptLines as transcriptLine (transcriptLine.line_number)}
+            {#each filteredTranscriptLines as transcriptLine (transcriptLine.index)}
                 <div
                     class="transcript-line-container"
-                    id={`transcript-line-${transcriptLine.line_number}`}
+                    id={`transcript-line-${transcriptLine.index}`}
                 >
                     <span class="transcript-line-header-text">
                         <span class="speaker-name">

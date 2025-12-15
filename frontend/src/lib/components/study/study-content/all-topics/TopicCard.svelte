@@ -61,9 +61,9 @@
             <div class="topic-card-internal-container">
                 <span class="topic-card-label">Supporting quotes</span>
                 <div class="supporting-quotes-container">
-                    {#each topicCard.topic.quotes as quote (quote.line_number)}
+                    {#each topicCard.topic.quotes as quote (quote.index)}
                         <Quote
-                            line_number={quote.line_number}
+                            index={quote.index}
                             timestamp={quote.timestamp}
                             speaker={quote.speaker}
                             quote={quote.quote}

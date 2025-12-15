@@ -18,9 +18,7 @@
     export let quotes: QuoteI[];
 
     const handleRemoveQuote = (lineNumber: number): void => {
-        quotes = quotes.filter(
-            (quote: QuoteI) => quote.line_number !== lineNumber,
-        );
+        quotes = quotes.filter((quote: QuoteI) => quote.index !== lineNumber);
     };
 
     const handleCancelButtonClick = (): void => {
@@ -67,10 +65,10 @@
             <div class="supporting-quotes-external-container">
                 <span class="bx--label">Supporting quotes</span>
                 <div class="supporting-quotes-container">
-                    {#each quotes as quote (quote.line_number)}
+                    {#each quotes as quote (quote.index)}
                         <div class="supporting-quote-container">
                             <Quote
-                                line_number={quote.line_number}
+                                index={quote.index}
                                 timestamp={quote.timestamp}
                                 speaker={quote.speaker}
                                 quote={quote.quote}
@@ -79,8 +77,7 @@
                                 class="remove-quote-button"
                                 kind="ghost"
                                 size="small"
-                                on:click={() =>
-                                    handleRemoveQuote(quote.line_number)}
+                                on:click={() => handleRemoveQuote(quote.index)}
                             >
                                 <TrashCan size={16} />
                             </Button>

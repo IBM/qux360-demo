@@ -138,7 +138,7 @@ async def upload_file(file: UploadFile = File(...)):
         transcript_raw = i.transcript_raw
         selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
         data = [
-            {"line_number": idx + 1, **row}
+            {"index": idx, **row}
             for idx, row in enumerate(selected_df.to_dict(orient="records"))
         ]
 
@@ -242,7 +242,6 @@ async def anonymize_speakers(speakers: SpeakersPayload):
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"anonymized_speakers_map": "", "error": str(e)}
-    
 
 @app.get("/entities_anonymization_map/{file_id}")
 async def get_entities_anonymization_map(file_id: int):
@@ -281,7 +280,7 @@ async def get_transcript(file_id: int):
         transcript_raw = i.transcript_raw
         selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
         data = [
-            {"line_number": idx + 1, **row}
+            {"index": idx, **row}
             for idx, row in enumerate(selected_df.to_dict(orient="records"))
         ]
 
@@ -341,7 +340,7 @@ async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: boo
     print(f"🔍 Getting suggested topics for interview with file id: {file_id}")
     row = get_file_from_db(db_conn, file_id)
     if not row:
-        return {"interview_topics_result": [], "error": "file not found"}
+        return {"interview_topics_result": None, "error": "file not found"}
 
     suffix = Path(row["filename"]).suffix or ".xlsx"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -355,4 +354,4 @@ async def get_suggested_topics_for_interview(file_id: int, top_n=5, explain: boo
         return {"message": "Suggested topics result for interview", "interview_topics_result": topics_result}
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
-        return {"interview_topics_result": [], "error": str(e)}
+        return {"interview_topics_result": None, "error": str(e)}

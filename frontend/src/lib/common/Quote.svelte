@@ -1,5 +1,5 @@
 <script lang="ts">
-    export let line_number: number;
+    export let index: number;
     export let timestamp: string;
     export let speaker: string;
     export let quote: string;
@@ -36,7 +36,7 @@
     <span
         class="quote-header"
         on:click={() => {
-            handleTranscriptLineHeaderClick(line_number);
+            handleTranscriptLineHeaderClick(index);
         }}
     >
         {speaker}
