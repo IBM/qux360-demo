@@ -4,7 +4,7 @@
     import { selectedStudyIdStore, selectedStudyStore } from "$lib/stores";
     import { Button } from "carbon-components-svelte";
     import { ArrowLeft, Settings } from "carbon-icons-svelte";
-    import { Transcripts } from ".";
+    import { AllTopics, Transcripts } from ".";
 
     let isAISettingsModalOpen: boolean = false;
 
@@ -51,6 +51,8 @@
 
     {#if activeTab === StudyContentTabID.Transcripts}
         <Transcripts transcriptFiles={$selectedStudyStore.transcriptFiles} />
+    {:else if activeTab === StudyContentTabID.AllTopics}
+        <AllTopics transcriptFiles={$selectedStudyStore.transcriptFiles} />
     {/if}
 
     {#key isAISettingsModalOpen}

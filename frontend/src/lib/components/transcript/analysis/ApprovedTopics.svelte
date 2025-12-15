@@ -85,7 +85,7 @@
             </div>
 
             <div class="topic-card-internal-container">
-                <span class="topic-card-label"> Description </span>
+                <span class="topic-card-label">Description</span>
                 <span class="topic-card-text">
                     {identifiedTopic.explanation}
                 </span>
