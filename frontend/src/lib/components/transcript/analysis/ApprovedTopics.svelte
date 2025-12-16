@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { EditTopicModal, SupportingQuotes } from "$lib/common";
+    import {
+        CreateTopicModal,
+        EditTopicModal,
+        SupportingQuotes,
+    } from "$lib/common";
     import type { IdentifiedTopicI } from "$lib/models";
     import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Button, Link } from "carbon-components-svelte";
@@ -9,6 +13,7 @@
 
     let topicToEdit: IdentifiedTopicI | null = null;
 
+    let isCreateNewTopicModalOpen: boolean = false;
     let isEditTopicModalOpen: boolean = false;
 
     const editTopic = (topic: IdentifiedTopicI): void => {
@@ -24,7 +29,9 @@
         editTopic(topic);
     };
 
-    const handleCreateNewTopicButtonClick = (): void => {};
+    const handleCreateNewTopicButtonClick = (): void => {
+        isCreateNewTopicModalOpen = true;
+    };
 </script>
 
 {#if identifiedTopics.length > 0}
@@ -97,6 +104,12 @@
         </div>
     {/if}
 {/each}
+
+{#key isCreateNewTopicModalOpen}
+    {#if isCreateNewTopicModalOpen}
+        <CreateTopicModal bind:isModalOpen={isCreateNewTopicModalOpen} />
+    {/if}
+{/key}
 
 {#key isEditTopicModalOpen}
     {#if isEditTopicModalOpen && topicToEdit}

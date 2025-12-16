@@ -693,6 +693,37 @@ const createStudiesStore = () => {
                 });
             });
         },
+        addTopic: (
+            studyId: string,
+            transcriptFileId: number,
+            newTopic: IdentifiedTopicI,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            return {
+                                ...t,
+                                topics: [...t.topics, newTopic],
+                            };
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
         updateTopic: (
             studyId: string,
             transcriptFileId: number,
