@@ -601,6 +601,31 @@ const createStudiesStore = () => {
                 await apiService.getTranscriptTopics(transcriptFileId);
 
             if (!transcriptTopicsData.interview_topics_result) {
+                update((studies: StudyI[]) => {
+                    return studies.map((study: StudyI) => {
+                        if (study.id !== studyId) return study;
+
+                        const updatedFiles: TranscriptFileI[] =
+                            study.transcriptFiles.map(
+                                (transcriptFile: TranscriptFileI) => {
+                                    if (transcriptFile.id !== transcriptFileId)
+                                        return transcriptFile;
+
+                                    return {
+                                        ...transcriptFile,
+                                        status: TranscriptStatus.ReadyForAnalysis,
+                                    };
+                                },
+                            );
+
+                        const updatedStudy: StudyI = {
+                            ...study,
+                            transcriptFiles: updatedFiles,
+                        };
+                        studiesCacheService.update(updatedStudy);
+                        return updatedStudy;
+                    });
+                });
                 return;
             }
 
@@ -677,6 +702,14 @@ const createStudiesStore = () => {
 
                             return {
                                 ...t,
+                                status: updatedTopics.every(
+                                    (topic: IdentifiedTopicI) =>
+                                        topic.validation?.status ===
+                                            ValidationStatus.Ok ||
+                                        topic.validation?.isApprovedByUser,
+                                )
+                                    ? TranscriptStatus.Ready
+                                    : TranscriptStatus.TopicsNeedReview,
                                 topics: updatedTopics,
                             };
                         });
@@ -793,6 +826,14 @@ const createStudiesStore = () => {
 
                             return {
                                 ...t,
+                                status: updatedTopics.every(
+                                    (topic: IdentifiedTopicI) =>
+                                        topic.validation?.status ===
+                                            ValidationStatus.Ok ||
+                                        topic.validation?.isApprovedByUser,
+                                )
+                                    ? TranscriptStatus.Ready
+                                    : TranscriptStatus.TopicsNeedReview,
                                 topics: updatedTopics,
                             };
                         });

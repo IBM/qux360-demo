@@ -4,8 +4,11 @@
         EditTopicModal,
         SupportingQuotes,
     } from "$lib/common";
-    import type { IdentifiedTopicI } from "$lib/models";
-    import { selectedTranscriptFileIdStore } from "$lib/stores";
+    import { TranscriptStatus, type IdentifiedTopicI } from "$lib/models";
+    import {
+        selectedTranscriptFileIdStore,
+        selectedTranscriptStore,
+    } from "$lib/stores";
     import { Button, Link } from "carbon-components-svelte";
     import { Add, Edit } from "carbon-icons-svelte";
 
@@ -62,6 +65,9 @@
 <Button
     kind="tertiary"
     size="field"
+    skeleton={!$selectedTranscriptStore ||
+        $selectedTranscriptStore.status ===
+            TranscriptStatus.RunningTopicExtraction}
     icon={Add}
     on:click={handleCreateNewTopicButtonClick}
 >
