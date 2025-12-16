@@ -40,7 +40,6 @@ export enum TranscriptState {
     Running = "running",
     Ready = "ready",
     Review = "review",
-    Finish = "finish",
 }
 
 export enum TranscriptStatus {
