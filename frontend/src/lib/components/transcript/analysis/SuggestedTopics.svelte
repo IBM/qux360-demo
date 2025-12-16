@@ -3,7 +3,7 @@
         AILabel,
         AISettingsModal,
         EditTopicModal,
-        Quote,
+        SupportingQuotes,
         VALIDATION_STATUS_MAP,
         VALIDATION_STRATEGY_MAP,
     } from "$lib/common";
@@ -253,15 +253,7 @@
                 </div>
 
                 <div class="topic-card-internal-container">
-                    <span class="topic-card-label">Supporting quotes</span>
-                    {#each identifiedTopic.quotes as quote (quote.index)}
-                        <Quote
-                            index={quote.index}
-                            timestamp={quote.timestamp}
-                            speaker={quote.speaker}
-                            quote={quote.quote}
-                        />
-                    {/each}
+                    <SupportingQuotes quotes={identifiedTopic.quotes} />
                 </div>
 
                 <div class="overall-evaluation-card-container">

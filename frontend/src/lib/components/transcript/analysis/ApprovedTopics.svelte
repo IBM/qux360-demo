@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { EditTopicModal, Quote } from "$lib/common";
+    import { EditTopicModal, SupportingQuotes } from "$lib/common";
     import type { IdentifiedTopicI } from "$lib/models";
     import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Button, Link } from "carbon-components-svelte";
@@ -92,15 +92,7 @@
             </div>
 
             <div class="topic-card-internal-container">
-                <span class="topic-card-label">Supporting quotes</span>
-                {#each identifiedTopic.quotes as quote (quote.index)}
-                    <Quote
-                        index={quote.index}
-                        timestamp={quote.timestamp}
-                        speaker={quote.speaker}
-                        quote={quote.quote}
-                    />
-                {/each}
+                <SupportingQuotes quotes={identifiedTopic.quotes} />
             </div>
         </div>
     {/if}
