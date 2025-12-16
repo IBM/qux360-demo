@@ -299,7 +299,7 @@
             </div>
         </Stack>
         <div class="buttons-container">
-            {#if mixedSelection || allSelected}
+            {#if (mixedSelection || allSelected) && filteredTranscripts.length > 0}
                 <Button
                     kind="tertiary"
                     size="field"
