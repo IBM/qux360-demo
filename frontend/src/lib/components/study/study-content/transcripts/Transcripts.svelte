@@ -154,6 +154,8 @@
         isRunningAction = true;
         isRunningAnonymizationStore.set(true);
         if (!$selectedStudyStore) {
+            isRunningAction = false;
+            isRunningAnonymizationStore.set(false);
             return;
         }
 
@@ -161,12 +163,16 @@
             filteredTranscripts.filter(
                 (t: TranscriptFileI) => checkedTranscriptsMap[t.name],
             );
-        for (let i = 0; i < selectedFilteredTranscripts.length; i++) {
-            await studiesStore.runTranscriptSpeakerAndEntityAnonymization(
-                $selectedStudyStore,
-                selectedFilteredTranscripts[i].id!,
+
+        const anonymizationPromises: Promise<void>[] =
+            selectedFilteredTranscripts.map((transcript: TranscriptFileI) =>
+                studiesStore.runTranscriptSpeakerAndEntityAnonymization(
+                    $selectedStudyStore,
+                    transcript.id!,
+                ),
             );
-        }
+        await Promise.all(anonymizationPromises);
+
         isRunningAction = false;
         isRunningAnonymizationStore.set(false);
     };
@@ -175,6 +181,8 @@
         isRunningAction = true;
         isRunningTopicsSuggestionStore.set(true);
         if (!$selectedStudyIdStore) {
+            isRunningAction = false;
+            isRunningTopicsSuggestionStore.set(false);
             return;
         }
 
@@ -182,12 +190,16 @@
             filteredTranscripts.filter(
                 (t: TranscriptFileI) => checkedTranscriptsMap[t.name],
             );
-        for (let i = 0; i < selectedFilteredTranscripts.length; i++) {
-            await studiesStore.runSuggestTopics(
-                $selectedStudyIdStore,
-                selectedFilteredTranscripts[i].id!,
+
+        const suggestionPromises: Promise<void>[] =
+            selectedFilteredTranscripts.map((transcript: TranscriptFileI) =>
+                studiesStore.runSuggestTopics(
+                    $selectedStudyIdStore,
+                    transcript.id!,
+                ),
             );
-        }
+        await Promise.all(suggestionPromises);
+
         isRunningAction = false;
         isRunningTopicsSuggestionStore.set(false);
     };

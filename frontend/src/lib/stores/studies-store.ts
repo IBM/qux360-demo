@@ -199,64 +199,75 @@ const createStudiesStore = () => {
             });
         },
         runTranscriptFilesParticipantIdentification: async (study: StudyI) => {
-            for (let i = 0; i < study.transcriptFiles.length; i++) {
-                const transcriptFile: TranscriptFileI =
-                    study.transcriptFiles[i];
+            const transcriptsToIdentify: TranscriptFileI[] =
+                study.transcriptFiles.filter(
+                    (t: TranscriptFileI) =>
+                        t.status ===
+                        TranscriptStatus.ReadyToIdentifyParticipants,
+                );
 
-                if (
-                    transcriptFile.status ===
-                    TranscriptStatus.ReadyToIdentifyParticipants
-                ) {
-                    transcriptFile.status =
-                        TranscriptStatus.RunningParticipantIdentification;
+            const identificationPromises: Promise<TranscriptFileI>[] =
+                transcriptsToIdentify.map(
+                    async (transcriptFile: TranscriptFileI) => {
+                        transcriptFile.status =
+                            TranscriptStatus.RunningParticipantIdentification;
 
-                    const data: IdentifyParticipantResponse =
-                        await apiService.identifyParticipant(
-                            transcriptFile.id!,
-                        );
+                        const data: IdentifyParticipantResponse =
+                            await apiService.identifyParticipant(
+                                transcriptFile.id!,
+                            );
 
-                    if (data.validation) {
-                        if (data.validation.status !== ValidationStatus.Ok) {
+                        if (data.validation) {
+                            if (
+                                data.validation.status !== ValidationStatus.Ok
+                            ) {
+                                transcriptFile.status =
+                                    TranscriptStatus.ParticipantNeedsReview;
+                            } else {
+                                transcriptFile.status =
+                                    TranscriptStatus.ReadyForAnonymization;
+                            }
+                        } else {
                             transcriptFile.status =
                                 TranscriptStatus.ParticipantNeedsReview;
-                        } else if (
-                            data.validation.status === ValidationStatus.Ok
-                        ) {
-                            transcriptFile.status =
-                                TranscriptStatus.ReadyForAnonymization;
                         }
-                    } else {
-                        transcriptFile.status =
-                            TranscriptStatus.ParticipantNeedsReview;
-                    }
 
-                    const updatedTranscriptFile: TranscriptFileI = {
-                        ...transcriptFile,
-                        participant: {
-                            name: data.participant,
-                            explanation: getParticipantExplanation(
-                                data.participant,
-                                data.validation,
-                            ),
-                            showExplanation: true,
-                            validation: data.validation,
-                        },
-                        speakers: data.speakers,
-                    };
+                        return {
+                            ...transcriptFile,
+                            participant: {
+                                name: data.participant,
+                                explanation: getParticipantExplanation(
+                                    data.participant,
+                                    data.validation,
+                                ),
+                                showExplanation: true,
+                                validation: data.validation,
+                            },
+                            speakers: data.speakers,
+                        };
+                    },
+                );
 
-                    study.transcriptFiles[i] = updatedTranscriptFile;
-                    study.status = computeStudyStatus(study);
+            const updatedTranscripts: TranscriptFileI[] = await Promise.all(
+                identificationPromises,
+            );
 
-                    await studiesCacheService.update(study);
-                    update((studies: StudyI[]) =>
-                        studies.map((s: StudyI) =>
-                            s.id === study.id ? study : s,
-                        ),
-                    );
+            study.transcriptFiles = study.transcriptFiles.map(
+                (t: TranscriptFileI) => {
+                    const updated: TranscriptFileI | undefined =
+                        updatedTranscripts.find(
+                            (ut: TranscriptFileI) => ut.id === t.id,
+                        );
+                    return updated || t;
+                },
+            );
 
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                }
-            }
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
         },
         runParticipantIdentification: async (
             study: StudyI,
