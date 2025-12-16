@@ -13,9 +13,7 @@
     onMount(() => {
         studiesStore.subscribe((studies: StudyI[]) => {
             studies.forEach(async (study: StudyI) => {
-                studiesStore.updateTranscriptFilesData(study);
-                // const a = await utilsService.convertToSerializableStudy(study);
-                // console.log(structuredClone(a));
+                studiesStore.runTranscriptFilesParticipantIdentification(study);
             });
         });
     });

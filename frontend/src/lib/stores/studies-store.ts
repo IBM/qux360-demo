@@ -121,7 +121,84 @@ const createStudiesStore = () => {
     return {
         subscribe,
         refresh: () => set(studiesCacheService.getAllStudies()),
-        updateTranscriptFilesData: async (study: StudyI) => {
+        add: async (study: StudyI): Promise<void> => {
+            const { successes, errors } = await apiService.uploadFiles(
+                study.transcriptFiles,
+            );
+            if (errors.length > 0) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Study upload failed",
+                    subtitle: `${errors.length} file(s) failed to upload.`,
+                });
+                return;
+            }
+
+            study.transcriptFiles = study.transcriptFiles.map(
+                (transcriptFile: TranscriptFileI) => {
+                    // Find the corresponding success result for each transcriptFile
+                    const success: UploadTranscriptFileSuccessI | undefined =
+                        successes.find(
+                            (s: UploadTranscriptFileSuccessI) =>
+                                s.filename === transcriptFile.name,
+                        );
+                    if (success) {
+                        // If the file was successfully uploaded, assign the fileId
+                        return {
+                            ...transcriptFile,
+                            id: success.fileId,
+                        };
+                    }
+                    return transcriptFile; // If not found, leave the file unchanged
+                },
+            );
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.add(study);
+            update((studies: StudyI[]) => [...studies, study]);
+
+            notificationsStore.addNotification({
+                kind: "success",
+                title: "Study added",
+                subtitle: `Study '${study.name}' was added successfully.`,
+            });
+        },
+        delete: (id: string) => {
+            studiesCacheService.delete(id);
+            update((studies: StudyI[]) =>
+                studies.filter((s: StudyI) => s.id !== id),
+            );
+        },
+        update: async (updatedStudy: StudyI): Promise<void> => {
+            updatedStudy.status = computeStudyStatus(updatedStudy);
+
+            await studiesCacheService.update(updatedStudy);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) =>
+                    s.id === updatedStudy.id ? updatedStudy : s,
+                ),
+            );
+        },
+        updateTranscriptFiles: async (
+            studyId: string,
+            newTranscriptFiles: TranscriptFileI[],
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: newTranscriptFiles,
+                    };
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        runTranscriptFilesParticipantIdentification: async (study: StudyI) => {
             for (let i = 0; i < study.transcriptFiles.length; i++) {
                 const transcriptFile: TranscriptFileI =
                     study.transcriptFiles[i];
@@ -181,82 +258,70 @@ const createStudiesStore = () => {
                 }
             }
         },
-        updateTranscriptFiles: async (
-            studyId: string,
-            newTranscriptFiles: TranscriptFileI[],
+        runParticipantIdentification: async (
+            study: StudyI,
+            transcriptFileId: number,
         ) => {
-            update((studies: StudyI[]) => {
-                return studies.map((study: StudyI) => {
-                    if (study.id !== studyId) return study;
-
-                    const updatedStudy: StudyI = {
-                        ...study,
-                        transcriptFiles: newTranscriptFiles,
-                    };
-                    updatedStudy.status = computeStudyStatus(updatedStudy);
-
-                    studiesCacheService.update(updatedStudy);
-                    return updatedStudy;
-                });
-            });
-        },
-        add: async (study: StudyI): Promise<void> => {
-            const { successes, errors } = await apiService.uploadFiles(
-                study.transcriptFiles,
+            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
+                (t: TranscriptFileI) => t.id === transcriptFileId,
             );
-            if (errors.length > 0) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Study upload failed",
-                    subtitle: `${errors.length} file(s) failed to upload.`,
-                });
+            if (transcriptFileIndex === -1) {
                 return;
             }
 
-            study.transcriptFiles = study.transcriptFiles.map(
-                (transcriptFile: TranscriptFileI) => {
-                    // Find the corresponding success result for each transcriptFile
-                    const success: UploadTranscriptFileSuccessI | undefined =
-                        successes.find(
-                            (s: UploadTranscriptFileSuccessI) =>
-                                s.filename === transcriptFile.name,
-                        );
-                    if (success) {
-                        // If the file was successfully uploaded, assign the fileId
-                        return {
-                            ...transcriptFile,
-                            id: success.fileId,
-                        };
-                    }
-                    return transcriptFile; // If not found, leave the file unchanged
-                },
-            );
+            const transcriptFile: TranscriptFileI =
+                study.transcriptFiles[transcriptFileIndex];
+
+            transcriptFile.status =
+                TranscriptStatus.RunningParticipantIdentification;
+            study.transcriptFiles[transcriptFileIndex] = transcriptFile;
             study.status = computeStudyStatus(study);
 
-            await studiesCacheService.add(study);
-            update((studies: StudyI[]) => [...studies, study]);
-
-            notificationsStore.addNotification({
-                kind: "success",
-                title: "Study added",
-                subtitle: `Study '${study.name}' was added successfully.`,
-            });
-        },
-        update: async (updatedStudy: StudyI): Promise<void> => {
-            updatedStudy.status = computeStudyStatus(updatedStudy);
-
-            await studiesCacheService.update(updatedStudy);
+            await studiesCacheService.update(study);
             update((studies: StudyI[]) =>
-                studies.map((s: StudyI) =>
-                    s.id === updatedStudy.id ? updatedStudy : s,
-                ),
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
             );
-        },
-        delete: (id: string) => {
-            studiesCacheService.delete(id);
+
+            await new Promise((r) => setTimeout(r, 500));
+
+            const data: IdentifyParticipantResponse =
+                await apiService.identifyParticipant(transcriptFile.id!);
+
+            if (data.validation) {
+                if (data.validation.status !== ValidationStatus.Ok) {
+                    transcriptFile.status =
+                        TranscriptStatus.ParticipantNeedsReview;
+                } else if (data.validation.status === ValidationStatus.Ok) {
+                    transcriptFile.status =
+                        TranscriptStatus.ReadyForAnonymization;
+                }
+            } else {
+                transcriptFile.status = TranscriptStatus.ParticipantNeedsReview;
+            }
+
+            const updatedTranscriptFile: TranscriptFileI = {
+                ...transcriptFile,
+                participant: {
+                    name: data.participant,
+                    explanation: getParticipantExplanation(
+                        data.participant,
+                        data.validation,
+                    ),
+                    showExplanation: true,
+                    validation: data.validation,
+                },
+                speakers: data.speakers,
+            };
+
+            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
             update((studies: StudyI[]) =>
-                studies.filter((s: StudyI) => s.id !== id),
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
             );
+
+            await new Promise((r) => setTimeout(r, 500));
         },
         runTranscriptSpeakerAnonymization: async (
             study: StudyI,
