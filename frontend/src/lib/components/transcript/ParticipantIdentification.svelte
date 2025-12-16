@@ -70,7 +70,7 @@
     </div>
     {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <DropdownSkeleton />
-    {:else if !$selectedTranscriptStore.participant.validation}
+    {:else if $selectedTranscriptStore.participant.name.length === 0}
         <Button
             kind="primary"
             size="field"
