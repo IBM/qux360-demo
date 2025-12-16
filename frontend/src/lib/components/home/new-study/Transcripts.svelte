@@ -63,6 +63,8 @@
 
         steps[currentStepIndex].isComplete = true;
         isCreatingStudy = false;
+
+        studiesStore.runTranscriptFilesParticipantIdentification(newStudy);
     };
 </script>
 
