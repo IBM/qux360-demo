@@ -36,7 +36,7 @@
                     speakerDropdownItem.text ===
                     $selectedTranscriptStore.participant.name
                 );
-            })?.id || -1;
+            })?.id || 0;
     }
 
     const handleRunParticipantIdentificationButtonClick = (): void => {
@@ -70,7 +70,7 @@
     </div>
     {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <DropdownSkeleton />
-    {:else if speakerSelectedId === -1}
+    {:else if !$selectedTranscriptStore.participant.validation}
         <Button
             kind="primary"
             size="field"
