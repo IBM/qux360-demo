@@ -69,6 +69,12 @@ export interface SerializableStudyI {
     validation_strategy: ValidationStrategy;
 }
 
+export interface ThemeCardI {
+    id: string;
+    theme: IdentifiedThemeI;
+    isOpen: boolean;
+}
+
 // ─────────────────────────────────────────────
 // Responses Interfaces
 // ─────────────────────────────────────────────

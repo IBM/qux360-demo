@@ -2,7 +2,6 @@
     import {
         AILabel,
         Quote,
-        SupportingQuotes,
         VALIDATION_STATUS_MAP,
         VALIDATION_STRATEGY_MAP,
     } from "$lib/common";
@@ -11,6 +10,7 @@
         StudyStatus,
         ValidationStatus,
         type IdentifiedThemeI,
+        type ThemeCardI,
         type ValidationI,
     } from "$lib/models";
     import { utilsService } from "$lib/services";
@@ -31,6 +31,7 @@
     } from "carbon-components-svelte";
     import { Add, Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
+    import { ThemeCard } from ".";
 
     let approvedIdentifiedThemes: IdentifiedThemeI[] = [];
     let suggestedIdentifiedThemes: IdentifiedThemeI[] = [];
@@ -43,6 +44,9 @@
 
     let suggestThemesButtonContentElementRef: HTMLElement;
     let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
+
+    let themeCards: ThemeCardI[] = [];
+    let openCards: Map<string, boolean> = new Map<string, boolean>();
 
     $: if ($selectedStudyStore) {
         approvedIdentifiedThemes = $selectedStudyStore.themes.filter(
@@ -61,6 +65,18 @@
                 theme.title
                     .toLowerCase()
                     .includes(searchThemeValue.toLowerCase()),
+        );
+
+        themeCards = approvedIdentifiedThemes.map(
+            (theme: IdentifiedThemeI, index: number) => {
+                const id: string = `${index}-${theme.title}`;
+
+                return {
+                    id,
+                    theme,
+                    isOpen: openCards.get(id) ?? false,
+                };
+            },
         );
     }
 
@@ -120,7 +136,7 @@
     };
 </script>
 
-<div class="all-themes-tab-content-container">
+<div class="themes-tab-content-container">
     <ContentSwitcher bind:selectedIndex={selectedContentSwitcherIndex}>
         <Switch>
             <span>
@@ -199,7 +215,11 @@
     </div>
 
     {#if selectedContentSwitcherIndex === 0}
-        <div></div>
+        <div class="all-themes-container">
+            {#each themeCards as themeCard (themeCard.id)}
+                <ThemeCard bind:themeCard bind:openCards />
+            {/each}
+        </div>
     {:else if selectedContentSwitcherIndex === 1}
         <div class="themes-grid">
             {#each suggestedIdentifiedThemes as theme, index (index)}
@@ -392,7 +412,7 @@
 <style lang="scss">
     @use "@carbon/type";
 
-    .all-themes-tab-content-container {
+    .themes-tab-content-container {
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -488,5 +508,11 @@
         margin-right: 0.5rem;
         background-color: black;
         border-radius: 50%;
+    }
+
+    .all-themes-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 </style>
