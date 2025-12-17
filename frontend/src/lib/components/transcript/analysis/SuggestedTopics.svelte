@@ -48,7 +48,7 @@
     $: isReRunTopicExtractionButtonLoading =
         !$selectedTranscriptStore ||
         $selectedTranscriptStore.status ===
-            TranscriptStatus.RunningTopicExtraction;
+            TranscriptStatus.RunningTopicSuggestion;
 
     $: if (!isReRunTopicExtractionButtonLoading) {
         utilsService.updateAILabelSlugColor(
@@ -180,7 +180,11 @@
         bind:this={runTopicExtractionButtonContentElementRef}
         class="button-with-ai-label-container"
     >
-        Re-run topic extraction
+        {#if identifiedTopics.length > 0}
+            Re-run topic suggestion
+        {:else}
+            Suggest topics
+        {/if}
         <AILabel
             headerText="Suggest topics"
             bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."

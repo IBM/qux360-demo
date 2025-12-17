@@ -604,7 +604,7 @@ const createStudiesStore = () => {
 
                                 return {
                                     ...transcriptFile,
-                                    status: TranscriptStatus.RunningTopicExtraction,
+                                    status: TranscriptStatus.RunningTopicSuggestion,
                                 };
                             },
                         );

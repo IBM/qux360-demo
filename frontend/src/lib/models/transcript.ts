@@ -50,7 +50,7 @@ export enum TranscriptStatus {
     ReadyForAnonymization = "Ready for anonymization",
     RunningAnonymization = "Running anonymization",
     ReadyForAnalysis = "Ready for analysis",
-    RunningTopicExtraction = "Running topic extraction",
+    RunningTopicSuggestion = "Running topic suggestion",
     TopicsNeedReview = "Topics need review",
     Ready = "Ready",
 }

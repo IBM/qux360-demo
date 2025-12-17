@@ -71,8 +71,8 @@ export const TRANSCRIPT_STATUS_MAP: Record<
         iconColor: ICON_DEFAULT_COLOR,
         state: TranscriptState.Ready,
     },
-    [TranscriptStatus.RunningTopicExtraction]: {
-        description: "System is in the process of extracting topics",
+    [TranscriptStatus.RunningTopicSuggestion]: {
+        description: "System is in the process of suggesting topics",
         icon: InProgress,
         iconColor: ICON_DEFAULT_COLOR,
         state: TranscriptState.Running,

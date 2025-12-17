@@ -67,7 +67,7 @@
     size="field"
     skeleton={!$selectedTranscriptStore ||
         $selectedTranscriptStore.status ===
-            TranscriptStatus.RunningTopicExtraction}
+            TranscriptStatus.RunningTopicSuggestion}
     icon={Add}
     on:click={handleCreateNewTopicButtonClick}
 >
