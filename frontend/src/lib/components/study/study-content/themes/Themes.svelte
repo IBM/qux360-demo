@@ -48,24 +48,31 @@
         const themesMap: IdentifiedThemeMapI = $selectedStudyStore.themes;
 
         approvedIdentifiedThemes = {};
-        for (const [interviewId, themes] of Object.entries(themesMap)) {
-            const filtered: IdentifiedThemeI[] = themes.filter(
-                (t: IdentifiedThemeI) =>
-                    t.validation?.isApprovedByUser === true,
-            );
-            if (filtered.length > 0) {
-                approvedIdentifiedThemes[interviewId] = filtered;
-            }
-        }
-
         suggestedIdentifiedThemes = {};
+
         for (const [interviewId, themes] of Object.entries(themesMap)) {
-            const filtered: IdentifiedThemeI[] = themes.filter(
+            const approvedFiltered: IdentifiedThemeI[] = themes.filter(
                 (t: IdentifiedThemeI) =>
-                    t.validation?.isApprovedByUser === false,
+                    t.validation?.isApprovedByUser === true &&
+                    t.topic
+                        .toLowerCase()
+                        .includes(searchThemeValue.toLowerCase()),
             );
-            if (filtered.length > 0) {
-                suggestedIdentifiedThemes[interviewId] = filtered;
+
+            if (approvedFiltered.length > 0) {
+                approvedIdentifiedThemes[interviewId] = approvedFiltered;
+            }
+
+            const suggestedFiltered: IdentifiedThemeI[] = themes.filter(
+                (t: IdentifiedThemeI) =>
+                    t.validation?.isApprovedByUser === false &&
+                    t.topic
+                        .toLowerCase()
+                        .includes(searchThemeValue.toLowerCase()),
+            );
+
+            if (suggestedFiltered.length > 0) {
+                suggestedIdentifiedThemes[interviewId] = suggestedFiltered;
             }
         }
     }
@@ -97,20 +104,62 @@
     ): ValidationI | undefined => {
         return checks.find((check: ValidationI) => check.method === method);
     };
+
+    const getTranscriptNameFromStudy = (interviewId: string): string => {
+        let transcriptName: string = "";
+
+        if ($selectedStudyStore) {
+            transcriptName =
+                $selectedStudyStore.transcriptFiles.find(
+                    (transcript) => transcript.id?.toString() === interviewId,
+                )?.name || "";
+        }
+
+        return transcriptName;
+    };
+
+    const handleApproveThemeButtonClick = (
+        interviewId: string,
+        identifiedTheme: IdentifiedThemeI,
+    ): void => {
+        if ($selectedStudyIdStore) {
+            studiesStore.approveTheme(
+                $selectedStudyIdStore,
+                interviewId,
+                identifiedTheme,
+            );
+        }
+    };
+
+    const handleRemoveThemeButtonClick = (
+        interviewId: string,
+        themeTopicToRemove: string,
+    ): void => {
+        if ($selectedStudyIdStore) {
+            studiesStore.removeTheme(
+                $selectedStudyIdStore,
+                interviewId,
+                themeTopicToRemove,
+            );
+        }
+    };
 </script>
 
 <div class="all-themes-tab-content-container">
     <ContentSwitcher bind:selectedIndex={selectedContentSwitcherIndex}>
         <Switch>
             <span>
-                Approved themes ({Object.keys(approvedIdentifiedThemes).length})
+                Approved themes ({Object.values(
+                    approvedIdentifiedThemes,
+                ).reduce((acc, themes) => acc + themes.length, 0)})
             </span>
         </Switch>
         <Switch>
             <div class="suggested-themes-content-switcher-title-container">
                 <span>
-                    Suggested themes ({Object.keys(suggestedIdentifiedThemes)
-                        .length})
+                    Suggested themes ({Object.values(
+                        suggestedIdentifiedThemes,
+                    ).reduce((acc, themes) => acc + themes.length, 0)})
                 </span>
                 <AILabel
                     headerText="Suggested themes"
@@ -227,14 +276,24 @@
                                             icon={Checkmark}
                                             hideTooltip
                                             size="small"
-                                            on:click={() => {}}
+                                            on:click={() => {
+                                                handleApproveThemeButtonClick(
+                                                    interviewId,
+                                                    theme,
+                                                );
+                                            }}
                                         ></Button>
                                         <Button
                                             kind="tertiary"
                                             icon={Close}
                                             hideTooltip
                                             size="small"
-                                            on:click={() => {}}
+                                            on:click={() => {
+                                                handleRemoveThemeButtonClick(
+                                                    interviewId,
+                                                    theme.topic,
+                                                );
+                                            }}
                                         ></Button>
                                     </div>
                                 </div>
@@ -249,6 +308,11 @@
                                 </div>
 
                                 <div class="topic-card-internal-container">
+                                    <span class="interview-name">
+                                        [{getTranscriptNameFromStudy(
+                                            interviewId,
+                                        )}]
+                                    </span>
                                     <SupportingQuotes quotes={theme.quotes} />
                                 </div>
 
@@ -400,5 +464,9 @@
         flex-direction: column;
         gap: 1rem;
         padding: 1rem 2rem;
+    }
+
+    .interview-name {
+        margin-bottom: 0.25rem;
     }
 </style>

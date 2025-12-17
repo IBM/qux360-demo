@@ -975,6 +975,100 @@ const createStudiesStore = () => {
                 }),
             );
         },
+        approveTheme: (
+            studyId: string,
+            interviewId: string,
+            identifiedTheme: IdentifiedThemeI,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedThemes: IdentifiedThemeMapI = {
+                        ...study.themes,
+                        [interviewId]: study.themes[interviewId].map(
+                            (theme) => {
+                                if (theme.topic !== identifiedTheme.topic)
+                                    return theme;
+                                if (!theme.validation) return theme;
+
+                                return {
+                                    ...theme,
+                                    validation: {
+                                        ...theme.validation,
+                                        isApprovedByUser: true,
+                                    },
+                                };
+                            },
+                        ),
+                    };
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes: updatedThemes,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        updateTheme: (
+            studyId: string,
+            interviewId: string,
+            originalTopic: string,
+            updatedThemeData: Partial<Omit<IdentifiedThemeI, "validation">>,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedThemes: IdentifiedThemeMapI = {
+                        ...study.themes,
+                        [interviewId]: study.themes[interviewId].map(
+                            (theme) => {
+                                if (theme.topic !== originalTopic) return theme;
+                                return { ...theme, ...updatedThemeData };
+                            },
+                        ),
+                    };
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes: updatedThemes,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        removeTheme: (
+            studyId: string,
+            interviewId: string,
+            themeTopicToRemove: string,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedThemes: IdentifiedThemeMapI = {
+                        ...study.themes,
+                        [interviewId]: study.themes[interviewId].filter(
+                            (theme) => theme.topic !== themeTopicToRemove,
+                        ),
+                    };
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes: updatedThemes,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
     };
 };
 
