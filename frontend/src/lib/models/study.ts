@@ -1,6 +1,11 @@
 import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
-import type { SerializableTranscriptFileI, TranscriptFileI } from ".";
+import type {
+    QuoteI,
+    SerializableTranscriptFileI,
+    TranscriptFileI,
+    ValidationI,
+} from ".";
 
 // ─────────────────────────────────────────────
 // Study Status Interfaces
@@ -35,12 +40,20 @@ export enum ValidationStrategy {
     Majority = "Majority",
 }
 
+export interface IdentifiedThemeI {
+    topic: string;
+    explanation: string;
+    quotes: QuoteI[];
+    validation: ValidationI | null;
+}
+
 export interface StudyI {
     id: string;
     name: string;
     description: string;
     transcriptFiles: TranscriptFileI[];
     status: StudyStatus;
+    themes: IdentifiedThemeI[];
     validation_strategy: ValidationStrategy;
 }
 
@@ -50,5 +63,6 @@ export interface SerializableStudyI {
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
     status: StudyStatus;
+    themes: IdentifiedThemeI[];
     validation_strategy: ValidationStrategy;
 }

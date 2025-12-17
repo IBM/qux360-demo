@@ -55,6 +55,7 @@
             description: studyDescription,
             transcriptFiles: transcriptFiles,
             status: StudyStatus.Ready,
+            themes: [],
             validation_strategy: ValidationStrategy.Strictest,
         };
         loadingRequestStore.startLoadingRequest();
