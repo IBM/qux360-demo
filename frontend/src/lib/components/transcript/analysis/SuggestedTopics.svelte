@@ -391,11 +391,6 @@
         padding: 1rem 2rem;
     }
 
-    :global(.topic-name-loading) {
-        height: 18px;
-        margin-bottom: unset;
-    }
-
     :global(.uncertain-quality-tag) {
         background-color: #ffd9be;
         color: #8a3800;
