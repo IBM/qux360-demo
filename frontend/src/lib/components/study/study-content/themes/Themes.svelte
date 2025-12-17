@@ -1,6 +1,7 @@
 <script lang="ts">
     import {
         AILabel,
+        Quote,
         SupportingQuotes,
         VALIDATION_STATUS_MAP,
         VALIDATION_STRATEGY_MAP,
@@ -10,7 +11,6 @@
         StudyStatus,
         ValidationStatus,
         type IdentifiedThemeI,
-        type IdentifiedThemeMapI,
         type ValidationI,
     } from "$lib/models";
     import { utilsService } from "$lib/services";
@@ -32,8 +32,8 @@
     import { Add, Checkmark, Close, Help } from "carbon-icons-svelte";
     import { onMount } from "svelte";
 
-    let approvedIdentifiedThemes: IdentifiedThemeMapI = {};
-    let suggestedIdentifiedThemes: IdentifiedThemeMapI = {};
+    let approvedIdentifiedThemes: IdentifiedThemeI[] = [];
+    let suggestedIdentifiedThemes: IdentifiedThemeI[] = [];
 
     let selectedContentSwitcherIndex: number = 0;
 
@@ -45,36 +45,23 @@
     let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
     $: if ($selectedStudyStore) {
-        const themesMap: IdentifiedThemeMapI = $selectedStudyStore.themes;
+        approvedIdentifiedThemes = $selectedStudyStore.themes.filter(
+            (theme: IdentifiedThemeI) =>
+                theme.validation &&
+                theme.validation.isApprovedByUser &&
+                theme.title
+                    .toLowerCase()
+                    .includes(searchThemeValue.toLowerCase()),
+        );
 
-        approvedIdentifiedThemes = {};
-        suggestedIdentifiedThemes = {};
-
-        for (const [interviewId, themes] of Object.entries(themesMap)) {
-            const approvedFiltered: IdentifiedThemeI[] = themes.filter(
-                (t: IdentifiedThemeI) =>
-                    t.validation?.isApprovedByUser === true &&
-                    t.topic
-                        .toLowerCase()
-                        .includes(searchThemeValue.toLowerCase()),
-            );
-
-            if (approvedFiltered.length > 0) {
-                approvedIdentifiedThemes[interviewId] = approvedFiltered;
-            }
-
-            const suggestedFiltered: IdentifiedThemeI[] = themes.filter(
-                (t: IdentifiedThemeI) =>
-                    t.validation?.isApprovedByUser === false &&
-                    t.topic
-                        .toLowerCase()
-                        .includes(searchThemeValue.toLowerCase()),
-            );
-
-            if (suggestedFiltered.length > 0) {
-                suggestedIdentifiedThemes[interviewId] = suggestedFiltered;
-            }
-        }
+        suggestedIdentifiedThemes = $selectedStudyStore.themes.filter(
+            (theme: IdentifiedThemeI) =>
+                theme.validation &&
+                !theme.validation.isApprovedByUser &&
+                theme.title
+                    .toLowerCase()
+                    .includes(searchThemeValue.toLowerCase()),
+        );
     }
 
     $: selectedContentSwitcherIndex,
@@ -119,28 +106,16 @@
     };
 
     const handleApproveThemeButtonClick = (
-        interviewId: string,
         identifiedTheme: IdentifiedThemeI,
     ): void => {
         if ($selectedStudyIdStore) {
-            studiesStore.approveTheme(
-                $selectedStudyIdStore,
-                interviewId,
-                identifiedTheme,
-            );
+            studiesStore.approveTheme($selectedStudyIdStore, identifiedTheme);
         }
     };
 
-    const handleRemoveThemeButtonClick = (
-        interviewId: string,
-        themeTopicToRemove: string,
-    ): void => {
+    const handleRemoveThemeButtonClick = (themeTopicToRemove: string): void => {
         if ($selectedStudyIdStore) {
-            studiesStore.removeTheme(
-                $selectedStudyIdStore,
-                interviewId,
-                themeTopicToRemove,
-            );
+            studiesStore.removeTheme($selectedStudyIdStore, themeTopicToRemove);
         }
     };
 </script>
@@ -149,17 +124,13 @@
     <ContentSwitcher bind:selectedIndex={selectedContentSwitcherIndex}>
         <Switch>
             <span>
-                Approved themes ({Object.values(
-                    approvedIdentifiedThemes,
-                ).reduce((acc, themes) => acc + themes.length, 0)})
+                Approved themes ({approvedIdentifiedThemes.length})
             </span>
         </Switch>
         <Switch>
             <div class="suggested-themes-content-switcher-title-container">
                 <span>
-                    Suggested themes ({Object.values(
-                        suggestedIdentifiedThemes,
-                    ).reduce((acc, themes) => acc + themes.length, 0)})
+                    Suggested themes ({suggestedIdentifiedThemes.length})
                 </span>
                 <AILabel
                     headerText="Suggested themes"
@@ -231,168 +202,188 @@
         <div></div>
     {:else if selectedContentSwitcherIndex === 1}
         <div class="themes-grid">
-            {#each Object.entries(suggestedIdentifiedThemes) as [interviewId, themes]}
-                {#each themes as theme, index (index)}
-                    {#if theme.validation}
-                        {#if $selectedStudyStore?.status === StudyStatus.Running}
-                            <SkeletonPlaceholder
-                                style="height: 40rem; width: 100%;"
-                            />
-                        {:else}
-                            <div class="topic-card-container">
-                                <div class="topic-card-header-container">
-                                    <div
-                                        class="topic-card-header-internal-container"
-                                    >
-                                        <span class="topic-card-title-text">
-                                            {theme.topic}
-                                        </span>
-                                        {#if theme.validation.status === ValidationStatus.Ok}
-                                            <Tag type="cyan">
-                                                {VALIDATION_STATUS_MAP[
-                                                    ValidationStatus.Ok
-                                                ].text}
-                                            </Tag>
-                                        {:else if theme.validation.status === ValidationStatus.Check}
-                                            <Tag class="uncertain-quality-tag">
-                                                {VALIDATION_STATUS_MAP[
-                                                    ValidationStatus.Check
-                                                ].text}
-                                            </Tag>
-                                        {:else if theme.validation.status === ValidationStatus.Iffy}
-                                            <Tag type="red">
-                                                {VALIDATION_STATUS_MAP[
-                                                    ValidationStatus.Iffy
-                                                ].text}
-                                            </Tag>
-                                        {/if}
-                                    </div>
-
-                                    <div
-                                        class="topic-card-header-internal-container"
-                                    >
-                                        <Button
-                                            kind="tertiary"
-                                            icon={Checkmark}
-                                            hideTooltip
-                                            size="small"
-                                            on:click={() => {
-                                                handleApproveThemeButtonClick(
-                                                    interviewId,
-                                                    theme,
-                                                );
-                                            }}
-                                        ></Button>
-                                        <Button
-                                            kind="tertiary"
-                                            icon={Close}
-                                            hideTooltip
-                                            size="small"
-                                            on:click={() => {
-                                                handleRemoveThemeButtonClick(
-                                                    interviewId,
-                                                    theme.topic,
-                                                );
-                                            }}
-                                        ></Button>
-                                    </div>
-                                </div>
-
-                                <div class="topic-card-internal-container">
-                                    <span class="topic-card-label">
-                                        Why was this theme identified?
+            {#each suggestedIdentifiedThemes as theme, index (index)}
+                {#if theme.validation}
+                    {#if $selectedStudyStore?.status === StudyStatus.Running}
+                        <SkeletonPlaceholder
+                            style="height: 40rem; width: 100%;"
+                        />
+                    {:else}
+                        <div class="topic-card-container">
+                            <div class="topic-card-header-container">
+                                <div
+                                    class="topic-card-header-internal-container"
+                                >
+                                    <span class="topic-card-title-text">
+                                        {theme.title}
                                     </span>
-                                    <span class="topic-card-text">
-                                        {theme.explanation}
-                                    </span>
-                                </div>
-
-                                <div class="topic-card-internal-container">
-                                    <span class="interview-name">
-                                        [{getTranscriptNameFromStudy(
-                                            interviewId,
-                                        )}]
-                                    </span>
-                                    <SupportingQuotes quotes={theme.quotes} />
-                                </div>
-
-                                <div class="overall-evaluation-card-container">
-                                    <div
-                                        class="overall-evaluation-header-container"
-                                    >
-                                        <svelte:component
-                                            this={VALIDATION_STATUS_MAP[
-                                                theme.validation.status
-                                            ].principalIcon}
-                                            style={`
-                                                fill: ${VALIDATION_STATUS_MAP[theme.validation.status].iconColor};
-                                            `}
-                                        />
-                                        <span
-                                            class="overall-evaluation-title-text"
-                                        >
-                                            Overall evaluation:
+                                    {#if theme.validation.status === ValidationStatus.Ok}
+                                        <Tag type="cyan">
                                             {VALIDATION_STATUS_MAP[
-                                                theme.validation.status
+                                                ValidationStatus.Ok
                                             ].text}
-                                        </span>
-                                        <Tooltip
-                                            class="overall-evaluation-tooltip"
-                                            icon={Help}
-                                        >
-                                            <p>
-                                                Overall evaluation is determined
-                                                using the strategy selected in
-                                                the
-                                                <Link
-                                                    class="link"
-                                                    on:click={() => {
-                                                        isAISettingsModalOpen = true;
-                                                    }}
-                                                >
-                                                    AI settings
-                                                </Link>
-                                                for this study. Currently, the strategy
-                                                is set to
-                                                {$selectedStudyStore!.validation_strategy.toLowerCase()}:
-                                                {VALIDATION_STRATEGY_MAP[
-                                                    $selectedStudyStore!
-                                                        .validation_strategy
-                                                ].toLowerCase()}.
-                                            </p>
-                                        </Tooltip>
-                                    </div>
+                                        </Tag>
+                                    {:else if theme.validation.status === ValidationStatus.Check}
+                                        <Tag class="uncertain-quality-tag">
+                                            {VALIDATION_STATUS_MAP[
+                                                ValidationStatus.Check
+                                            ].text}
+                                        </Tag>
+                                    {:else if theme.validation.status === ValidationStatus.Iffy}
+                                        <Tag type="red">
+                                            {VALIDATION_STATUS_MAP[
+                                                ValidationStatus.Iffy
+                                            ].text}
+                                        </Tag>
+                                    {/if}
+                                </div>
 
-                                    <div
-                                        class="overall-evaluation-card-content-container"
-                                    >
-                                        <CheckValidation
-                                            checkValidation={getTopicCheckValidation(
-                                                theme.validation.checks,
-                                                "quote_validation",
-                                            )}
-                                            labelText="Quote validation"
-                                        />
-                                        <CheckValidation
-                                            checkValidation={getTopicCheckValidation(
-                                                theme.validation.checks,
-                                                "llm_validation",
-                                            )}
-                                            labelText="LLM validation"
-                                        />
-                                        <CheckValidation
-                                            checkValidation={getTopicCheckValidation(
-                                                theme.validation.checks,
-                                                "llm_assessment",
-                                            )}
-                                            labelText="Additional explanation"
-                                        />
-                                    </div>
+                                <div
+                                    class="topic-card-header-internal-container"
+                                >
+                                    <Button
+                                        kind="tertiary"
+                                        icon={Checkmark}
+                                        hideTooltip
+                                        size="small"
+                                        on:click={() => {
+                                            handleApproveThemeButtonClick(
+                                                theme,
+                                            );
+                                        }}
+                                    ></Button>
+                                    <Button
+                                        kind="tertiary"
+                                        icon={Close}
+                                        hideTooltip
+                                        size="small"
+                                        on:click={() => {
+                                            handleRemoveThemeButtonClick(
+                                                theme.title,
+                                            );
+                                        }}
+                                    ></Button>
                                 </div>
                             </div>
-                        {/if}
+
+                            <div class="topic-card-internal-container">
+                                <span class="topic-card-label">
+                                    Why was this theme identified?
+                                </span>
+                                <span class="topic-card-text">
+                                    {theme.explanation}
+                                </span>
+                            </div>
+
+                            <div class="topic-card-internal-container">
+                                <span class="topic-card-label">
+                                    Supporting topics and quotes
+                                </span>
+                                <div class="theme-topics-container">
+                                    {#each theme.topics as topic, topic_index (topic_index)}
+                                        <span>
+                                            {topic_index + 1}. {topic.topic} [{getTranscriptNameFromStudy(
+                                                topic.interview_id!,
+                                            )}]
+                                        </span>
+                                        <div class="quotes-container">
+                                            {#each topic.quotes as quote (quote.index)}
+                                                <div
+                                                    class="quote-external-container"
+                                                >
+                                                    <Quote
+                                                        index={quote.index}
+                                                        timestamp={quote.timestamp}
+                                                        speaker={quote.speaker}
+                                                        quote={quote.quote}
+                                                    />
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <div class="overall-evaluation-card-container">
+                                <div
+                                    class="overall-evaluation-header-container"
+                                >
+                                    <svelte:component
+                                        this={VALIDATION_STATUS_MAP[
+                                            theme.validation.status
+                                        ].principalIcon}
+                                        style={`
+                                                fill: ${VALIDATION_STATUS_MAP[theme.validation.status].iconColor};
+                                            `}
+                                    />
+                                    <span class="overall-evaluation-title-text">
+                                        Overall evaluation:
+                                        {VALIDATION_STATUS_MAP[
+                                            theme.validation.status
+                                        ].text}
+                                    </span>
+                                    <Tooltip
+                                        class="overall-evaluation-tooltip"
+                                        icon={Help}
+                                    >
+                                        <p>
+                                            Overall evaluation is determined
+                                            using the strategy selected in the
+                                            <Link
+                                                class="link"
+                                                on:click={() => {
+                                                    isAISettingsModalOpen = true;
+                                                }}
+                                            >
+                                                AI settings
+                                            </Link>
+                                            for this study. Currently, the strategy
+                                            is set to
+                                            {$selectedStudyStore!.validation_strategy.toLowerCase()}:
+                                            {VALIDATION_STRATEGY_MAP[
+                                                $selectedStudyStore!
+                                                    .validation_strategy
+                                            ].toLowerCase()}.
+                                        </p>
+                                    </Tooltip>
+                                </div>
+
+                                <div
+                                    class="overall-evaluation-card-content-container"
+                                >
+                                    <CheckValidation
+                                        checkValidation={getTopicCheckValidation(
+                                            theme.validation.checks,
+                                            "topic_hydration",
+                                        )}
+                                        labelText="Cross validation"
+                                    />
+                                    <CheckValidation
+                                        checkValidation={getTopicCheckValidation(
+                                            theme.validation.checks,
+                                            "cross_interview_coverage",
+                                        )}
+                                        labelText="Cross-interview coverage"
+                                    />
+                                    <CheckValidation
+                                        checkValidation={getTopicCheckValidation(
+                                            theme.validation.checks,
+                                            "topic_count",
+                                        )}
+                                        labelText="Topic count"
+                                    />
+                                    <CheckValidation
+                                        checkValidation={getTopicCheckValidation(
+                                            theme.validation.checks,
+                                            "llm_coherence",
+                                        )}
+                                        labelText="Coherence"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     {/if}
-                {/each}
+                {/if}
             {/each}
         </div>
     {/if}
@@ -468,5 +459,34 @@
 
     .interview-name {
         margin-bottom: 0.25rem;
+    }
+
+    .theme-topics-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.25rem;
+    }
+
+    .quotes-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-left: 1.5rem;
+    }
+
+    .quote-external-container {
+        display: flex;
+    }
+
+    .quote-external-container::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-top: 7px;
+        margin-right: 0.5rem;
+        background-color: black;
+        border-radius: 50%;
     }
 </style>

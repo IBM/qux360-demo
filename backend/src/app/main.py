@@ -16,7 +16,7 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 import pandas as pd
 from pydantic import BaseModel
-from qux360.core import Interview, Study
+from qux360.core import Interview, Study, TopicList
 
 
 load_dotenv()
@@ -466,10 +466,11 @@ def get_interviews_for_study_from_db(study_id: str):
         conn.close()
 
 
-def get_study_topics_sync(
+def get_study_themes_sync(
     study_id: str,
+    topics: List[TopicList] | None,
     top_n: int,
-    interview_context: str,
+    study_context: str,
 ):
     print(f"🔍 Getting suggested topics for study: {study_id}")
 
@@ -491,11 +492,7 @@ def get_study_topics_sync(
 
     study = Study(interviews)
 
-    topics_result = study.suggest_topics_all(
-        m,
-        top_n,
-        interview_context,
-    )
+    topics_result = study.suggest_themes(m, top_n, study_context, topic_lists=topics)
 
     return {
         "message": "Suggested topics result for study",
@@ -503,21 +500,25 @@ def get_study_topics_sync(
     }
 
 
-@app.get("/study_topics/{study_id}")
-async def get_suggested_topics_for_study(
-    study_id: str,
-    top_n: int = 5,
-    interview_context: str = "General",
-):
+class SuggestThemesPayload(BaseModel):
+    study_id: str
+    topics: List[TopicList] | None = None
+    top_n: int = 5
+    study_context: str = "General"
+
+
+@app.post("/study_themes")
+async def get_suggested_themes_for_study(payload: SuggestThemesPayload):
     try:
         return await run_in_threadpool(
-            get_study_topics_sync,
-            study_id,
-            top_n,
-            interview_context,
+            get_study_themes_sync,
+            payload.study_id,
+            payload.topics,
+            payload.top_n,
+            payload.study_context,
         )
     except Exception as e:
-        print(f"❌ study topic extraction failed: {e}")
+        print(f"❌ study theme suggestion failed: {e}")
         return {
             "study_topics_result": None,
             "error": str(e),

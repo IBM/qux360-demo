@@ -1,7 +1,9 @@
 import type {
     EntityAnonymizationMap,
     EntityAnonymizationResponse,
+    IdentifiedTopicI,
     IdentifyParticipantResponse,
+    QuoteI,
     SpeakerAnonymizationMap,
     SpeakerAnonymizationResponse,
     StudyI,
@@ -341,9 +343,7 @@ class ApiService {
                 `${this.BACKEND_API_URL}/update_transcript`,
                 {
                     method: APIMethodsType.POST,
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: this.getHeaders(),
                     body: JSON.stringify({
                         file_id: transcript.id,
                         content: transcriptLines,
@@ -413,6 +413,22 @@ class ApiService {
         }
     }
 
+    private getAllTopicsFromStudy(study: StudyI) {
+        return study.transcriptFiles.map((transcript: TranscriptFileI) => ({
+            topics: transcript.topics.map((topic: IdentifiedTopicI) => ({
+                topic: topic.topic,
+                explanation: topic.explanation,
+                interview_id: transcript.id!.toString(),
+                quotes: topic.quotes.map((q: QuoteI) => ({
+                    index: q.index,
+                    timestamp: q.timestamp,
+                    speaker: q.speaker,
+                    quote: q.quote,
+                })),
+            })),
+        }));
+    }
+
     public async getStudyThemes(study: StudyI): Promise<StudyThemesResponse> {
         try {
             await Promise.all(
@@ -421,10 +437,14 @@ class ApiService {
                 ),
             );
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/study_topics/${study.id}`,
+                `${this.BACKEND_API_URL}/study_themes`,
                 {
-                    method: APIMethodsType.GET,
+                    method: APIMethodsType.POST,
                     headers: this.getHeaders(),
+                    body: JSON.stringify({
+                        study_id: study.id,
+                        topics: this.getAllTopicsFromStudy(study),
+                    }),
                 },
             );
 

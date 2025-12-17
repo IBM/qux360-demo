@@ -133,6 +133,7 @@ export interface IdentifiedTopicI {
     explanation: string;
     quotes: QuoteI[];
     validation: ValidationI | null;
+    interview_id?: string;
 }
 
 export interface TranscriptFileI {

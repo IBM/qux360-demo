@@ -1,7 +1,7 @@
 import type { CarbonIconProps } from "carbon-icons-svelte";
 import type { Component } from "svelte";
 import type {
-    QuoteI,
+    IdentifiedTopicI,
     SerializableTranscriptFileI,
     TranscriptFileI,
     ValidationI,
@@ -42,14 +42,11 @@ export enum ValidationStrategy {
 }
 
 export interface IdentifiedThemeI {
-    topic: string;
+    title: string;
+    description: string;
     explanation: string;
-    quotes: QuoteI[];
+    topics: IdentifiedTopicI[];
     validation: ValidationI | null;
-}
-
-export interface IdentifiedThemeMapI {
-    [interviewId: string]: IdentifiedThemeI[];
 }
 
 export interface StudyI {
@@ -58,7 +55,7 @@ export interface StudyI {
     description: string;
     transcriptFiles: TranscriptFileI[];
     status: StudyStatus;
-    themes: IdentifiedThemeMapI;
+    themes: IdentifiedThemeI[];
     validation_strategy: ValidationStrategy;
 }
 
@@ -68,7 +65,7 @@ export interface SerializableStudyI {
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
     status: StudyStatus;
-    themes: IdentifiedThemeMapI;
+    themes: IdentifiedThemeI[];
     validation_strategy: ValidationStrategy;
 }
 
@@ -76,18 +73,14 @@ export interface SerializableStudyI {
 // Responses Interfaces
 // ─────────────────────────────────────────────
 
-export interface StudyThemeResult {
+export interface StudyThemesResult {
     result: IdentifiedThemeI[];
     validation: ValidationI;
     item_validations: ValidationI[];
 }
 
-export interface StudyTopicsResultMap {
-    [interviewId: string]: StudyThemeResult;
-}
-
 export interface StudyThemesResponse {
     message?: string;
     error?: string;
-    study_topics_result: StudyTopicsResultMap | null;
+    study_topics_result: StudyThemesResult | null;
 }

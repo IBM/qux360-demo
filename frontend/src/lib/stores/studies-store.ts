@@ -7,15 +7,13 @@ import {
     ValidationStrategy,
     type EntityAnonymizationResponse,
     type IdentifiedThemeI,
-    type IdentifiedThemeMapI,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
     type QuoteI,
     type SpeakerAnonymizationResponse,
     type StudyI,
-    type StudyThemeResult,
     type StudyThemesResponse,
-    type StudyTopicsResultMap,
+    type StudyThemesResult,
     type TranscriptFileI,
     type TranscriptTopicsResponse,
     type UploadTranscriptFileSuccessI,
@@ -941,23 +939,18 @@ const createStudiesStore = () => {
                 return;
             }
 
-            const resultMap: StudyTopicsResultMap =
+            const resultMap: StudyThemesResult =
                 studyThemesResponse.study_topics_result;
 
-            const themes: IdentifiedThemeMapI = {};
-
-            Object.entries(resultMap).forEach(
-                ([interviewId, themeResult]: [string, StudyThemeResult]) => {
-                    themes[interviewId] = themeResult.result.map(
-                        (theme: IdentifiedThemeI, index: number) => ({
-                            ...theme,
-                            validation: {
-                                ...themeResult.item_validations[index],
-                                isApprovedByUser: false,
-                            },
-                        }),
-                    );
-                },
+            const themes: IdentifiedThemeI[] = resultMap.result.map(
+                (theme: IdentifiedThemeI, index: number) => ({
+                    ...theme,
+                    validation: {
+                        ...studyThemesResponse.study_topics_result!
+                            .item_validations[index],
+                        isApprovedByUser: false,
+                    },
+                }),
             );
 
             update((studies: StudyI[]) =>
@@ -975,33 +968,27 @@ const createStudiesStore = () => {
                 }),
             );
         },
-        approveTheme: (
-            studyId: string,
-            interviewId: string,
-            identifiedTheme: IdentifiedThemeI,
-        ) => {
+        approveTheme: (studyId: string, identifiedTheme: IdentifiedThemeI) => {
             update((studies: StudyI[]) => {
                 return studies.map((study: StudyI) => {
                     if (study.id !== studyId) return study;
 
-                    const updatedThemes: IdentifiedThemeMapI = {
-                        ...study.themes,
-                        [interviewId]: study.themes[interviewId].map(
-                            (theme) => {
-                                if (theme.topic !== identifiedTheme.topic)
-                                    return theme;
-                                if (!theme.validation) return theme;
+                    const updatedThemes: IdentifiedThemeI[] = study.themes.map(
+                        (theme: IdentifiedThemeI) => {
+                            if (theme.title !== identifiedTheme.title)
+                                return theme;
 
-                                return {
-                                    ...theme,
-                                    validation: {
-                                        ...theme.validation,
-                                        isApprovedByUser: true,
-                                    },
-                                };
-                            },
-                        ),
-                    };
+                            if (!theme.validation) return theme;
+
+                            return {
+                                ...theme,
+                                validation: {
+                                    ...theme.validation,
+                                    isApprovedByUser: true,
+                                },
+                            };
+                        },
+                    );
 
                     const updatedStudy: StudyI = {
                         ...study,
@@ -1013,51 +1000,16 @@ const createStudiesStore = () => {
                 });
             });
         },
-        updateTheme: (
-            studyId: string,
-            interviewId: string,
-            originalTopic: string,
-            updatedThemeData: Partial<Omit<IdentifiedThemeI, "validation">>,
-        ) => {
+        removeTheme: (studyId: string, themeTopicToRemove: string) => {
             update((studies: StudyI[]) => {
                 return studies.map((study: StudyI) => {
                     if (study.id !== studyId) return study;
 
-                    const updatedThemes: IdentifiedThemeMapI = {
-                        ...study.themes,
-                        [interviewId]: study.themes[interviewId].map(
-                            (theme) => {
-                                if (theme.topic !== originalTopic) return theme;
-                                return { ...theme, ...updatedThemeData };
-                            },
-                        ),
-                    };
-
-                    const updatedStudy: StudyI = {
-                        ...study,
-                        themes: updatedThemes,
-                    };
-
-                    studiesCacheService.update(updatedStudy);
-                    return updatedStudy;
-                });
-            });
-        },
-        removeTheme: (
-            studyId: string,
-            interviewId: string,
-            themeTopicToRemove: string,
-        ) => {
-            update((studies: StudyI[]) => {
-                return studies.map((study: StudyI) => {
-                    if (study.id !== studyId) return study;
-
-                    const updatedThemes: IdentifiedThemeMapI = {
-                        ...study.themes,
-                        [interviewId]: study.themes[interviewId].filter(
-                            (theme) => theme.topic !== themeTopicToRemove,
-                        ),
-                    };
+                    const updatedThemes: IdentifiedThemeI[] =
+                        study.themes.filter(
+                            (theme: IdentifiedThemeI) =>
+                                theme.title !== themeTopicToRemove,
+                        );
 
                     const updatedStudy: StudyI = {
                         ...study,
