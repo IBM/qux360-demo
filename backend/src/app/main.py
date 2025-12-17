@@ -16,7 +16,7 @@ from mellea import MelleaSession
 from mellea.backends.litellm import LiteLLMBackend
 import pandas as pd
 from pydantic import BaseModel
-from qux360.core import Interview
+from qux360.core import Interview, Study
 
 
 load_dotenv()
@@ -445,3 +445,80 @@ async def get_suggested_topics_for_interview(
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"interview_topics_result": None, "error": str(e)}
+
+
+def get_interviews_for_study_from_db(study_id: str):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, filename, content
+            FROM Interviews
+            WHERE study_id = ?
+            ORDER BY id
+            """,
+            (study_id,),
+        )
+        rows = cur.fetchall()
+        return [{"id": r[0], "filename": r[1], "content": r[2]} for r in rows]
+    finally:
+        conn.close()
+
+
+def get_study_topics_sync(
+    study_id: str,
+    top_n: int,
+    interview_context: str,
+):
+    print(f"🔍 Getting suggested topics for study: {study_id}")
+
+    rows = get_interviews_for_study_from_db(study_id)
+    if not rows:
+        return {
+            "study_topics_result": None,
+            "error": "study has no interviews",
+        }
+
+    interviews = []
+
+    for row in rows:
+        tmp_path = write_temp_file(row)
+        interview = Interview(tmp_path)
+        interview.id = row["id"]
+        interview.identify_interviewee(m)
+        interviews.append(interview)
+
+    study = Study(interviews)
+
+    topics_result = study.suggest_topics_all(
+        m,
+        top_n,
+        interview_context,
+    )
+
+    return {
+        "message": "Suggested topics result for study",
+        "study_topics_result": topics_result,
+    }
+
+
+@app.get("/study_topics/{study_id}")
+async def get_suggested_topics_for_study(
+    study_id: str,
+    top_n: int = 5,
+    interview_context: str = "General",
+):
+    try:
+        return await run_in_threadpool(
+            get_study_topics_sync,
+            study_id,
+            top_n,
+            interview_context,
+        )
+    except Exception as e:
+        print(f"❌ study topic extraction failed: {e}")
+        return {
+            "study_topics_result": None,
+            "error": str(e),
+        }
