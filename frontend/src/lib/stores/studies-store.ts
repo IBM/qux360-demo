@@ -122,9 +122,11 @@ const createStudiesStore = () => {
         subscribe,
         refresh: () => set(studiesCacheService.getAllStudies()),
         add: async (study: StudyI): Promise<void> => {
-            const { successes, errors } = await apiService.uploadFiles(
-                study.transcriptFiles,
-            );
+            const { study_id, successes, errors } =
+                await apiService.uploadStudyFiles(
+                    study.name,
+                    study.transcriptFiles,
+                );
             if (errors.length > 0) {
                 notificationsStore.addNotification({
                     kind: "error",
@@ -134,6 +136,7 @@ const createStudiesStore = () => {
                 return;
             }
 
+            study.id = study_id;
             study.transcriptFiles = study.transcriptFiles.map(
                 (transcriptFile: TranscriptFileI) => {
                     // Find the corresponding success result for each transcriptFile
@@ -581,7 +584,14 @@ const createStudiesStore = () => {
                 });
             });
         },
-        runSuggestTopics: async (studyId: string, transcriptFileId: number) => {
+        runSuggestTopics: async (
+            studyId: string,
+            transcript: TranscriptFileI,
+        ) => {
+            if (!transcript.id) {
+                return;
+            }
+
             update((studies: StudyI[]) => {
                 return studies.map((study: StudyI) => {
                     if (study.id !== studyId) return study;
@@ -589,7 +599,7 @@ const createStudiesStore = () => {
                     const updatedFiles: TranscriptFileI[] =
                         study.transcriptFiles.map(
                             (transcriptFile: TranscriptFileI) => {
-                                if (transcriptFile.id !== transcriptFileId)
+                                if (transcriptFile.id !== transcript.id)
                                     return transcriptFile;
 
                                 return {
@@ -609,7 +619,7 @@ const createStudiesStore = () => {
             });
 
             const transcriptTopicsData: TranscriptTopicsResponse =
-                await apiService.getTranscriptTopics(transcriptFileId);
+                await apiService.getTranscriptTopics(transcript);
 
             if (!transcriptTopicsData.interview_topics_result) {
                 update((studies: StudyI[]) => {
@@ -619,7 +629,7 @@ const createStudiesStore = () => {
                         const updatedFiles: TranscriptFileI[] =
                             study.transcriptFiles.map(
                                 (transcriptFile: TranscriptFileI) => {
-                                    if (transcriptFile.id !== transcriptFileId)
+                                    if (transcriptFile.id !== transcript.id)
                                         return transcriptFile;
 
                                     return {
@@ -656,7 +666,7 @@ const createStudiesStore = () => {
 
                     const updatedFiles: TranscriptFileI[] =
                         study.transcriptFiles.map((t: TranscriptFileI) => {
-                            if (t.id !== transcriptFileId) return t;
+                            if (t.id !== transcript.id) return t;
 
                             return {
                                 ...t,

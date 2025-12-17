@@ -27,7 +27,8 @@ export interface UploadTranscriptFileErrorI {
     filename: string;
 }
 
-export interface UploadTranscriptFileResultI {
+export interface UploadTranscriptFilesResultI {
+    study_id: string;
     successes: UploadTranscriptFileSuccessI[];
     errors: UploadTranscriptFileErrorI[];
 }

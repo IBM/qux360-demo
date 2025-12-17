@@ -10,7 +10,7 @@
         UploadedTranscriptFileStatus,
         type TranscriptFileI,
         type UploadedTranscriptFileI,
-        type UploadTranscriptFileResultI,
+        type UploadTranscriptFilesResultI,
         type UploadTranscriptFileSuccessI,
     } from "$lib/models";
     import { apiService, utilsService } from "$lib/services";
@@ -195,7 +195,7 @@
             selectedFilteredTranscripts.map((transcript: TranscriptFileI) =>
                 studiesStore.runSuggestTopics(
                     $selectedStudyIdStore,
-                    transcript.id!,
+                    transcript!,
                 ),
             );
         await Promise.all(suggestionPromises);
@@ -235,41 +235,57 @@
             },
         );
 
-        let uploadedResults: UploadTranscriptFileResultI;
-        if (newFiles.length > 0) {
-            uploadedResults = await apiService.uploadFiles(
-                newFiles.map((u: UploadedTranscriptFileI) =>
-                    utilsService.getTranscriptFile(u.file),
-                ),
+        let uploadedResults: UploadTranscriptFilesResultI;
+        if (newFiles.length > 0 && $selectedStudyStore) {
+            uploadedResults = await apiService.uploadStudyFiles(
+                $selectedStudyStore.name,
+                [
+                    ...existingFiles,
+                    ...newFiles.map((u: UploadedTranscriptFileI) =>
+                        utilsService.getTranscriptFile(u.file),
+                    ),
+                ],
             );
         } else {
-            uploadedResults = { successes: [], errors: [] };
+            uploadedResults = { study_id: "", successes: [], errors: [] };
         }
 
         const newTranscriptFiles: TranscriptFileI[] =
-            uploadedResults.successes.map((s: UploadTranscriptFileSuccessI) => {
-                const original: UploadedTranscriptFileI = newFiles.find(
-                    (u: UploadedTranscriptFileI) => u.file.name === s.filename,
-                )!;
-                return {
-                    id: s.fileId,
-                    name: s.filename,
-                    file: original.file,
-                    size: original.file.size,
-                    type: original.file.type,
-                    status: TranscriptStatus.ReadyToIdentifyParticipants,
-                    speakers: [],
-                    participant: {
-                        name: "",
-                        explanation: "",
-                        showExplanation: false,
-                        validation: null,
-                    },
-                    speaker_anonymization_map: null,
-                    entity_anonymization_map: {},
-                    topics: [],
-                };
-            });
+            uploadedResults.successes.reduce(
+                (acc: TranscriptFileI[], s: UploadTranscriptFileSuccessI) => {
+                    const original: UploadedTranscriptFileI | undefined =
+                        newFiles.find(
+                            (u: UploadedTranscriptFileI) =>
+                                u.file.name === s.filename,
+                        );
+
+                    if (!original) {
+                        return acc;
+                    }
+
+                    acc.push({
+                        id: s.fileId,
+                        name: s.filename,
+                        file: original.file,
+                        size: original.file.size,
+                        type: original.file.type,
+                        status: TranscriptStatus.ReadyToIdentifyParticipants,
+                        speakers: [],
+                        participant: {
+                            name: "",
+                            explanation: "",
+                            showExplanation: false,
+                            validation: null,
+                        },
+                        speaker_anonymization_map: null,
+                        entity_anonymization_map: {},
+                        topics: [],
+                    });
+
+                    return acc;
+                },
+                [] as TranscriptFileI[],
+            );
 
         const updatedTranscriptFiles: TranscriptFileI[] = [
             ...existingFiles,

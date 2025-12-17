@@ -79,10 +79,10 @@
     };
 
     const handleReRunTopicExtractionButtonClick = (): void => {
-        if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
+        if ($selectedStudyIdStore && $selectedTranscriptStore) {
             studiesStore.runSuggestTopics(
                 $selectedStudyIdStore,
-                $selectedTranscriptFileIdStore,
+                $selectedTranscriptStore,
             );
         }
     };

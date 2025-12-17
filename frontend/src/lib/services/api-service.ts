@@ -1,12 +1,14 @@
 import type {
+    EntityAnonymizationMap,
     EntityAnonymizationResponse,
     IdentifyParticipantResponse,
+    SpeakerAnonymizationMap,
     SpeakerAnonymizationResponse,
     TranscriptFileI,
     TranscriptLineI,
     TranscriptTopicsResponse,
     UploadTranscriptFileErrorI,
-    UploadTranscriptFileResultI,
+    UploadTranscriptFilesResultI,
     UploadTranscriptFileSuccessI,
 } from "$lib/models";
 import { notificationsStore } from "$lib/stores";
@@ -34,62 +36,60 @@ class ApiService {
         };
     }
 
-    public async uploadFiles(
+    public async uploadStudyFiles(
+        studyName: string,
         transcriptFiles: TranscriptFileI[],
-    ): Promise<UploadTranscriptFileResultI> {
+    ): Promise<UploadTranscriptFilesResultI> {
+        let study_id: string = "";
         const successes: UploadTranscriptFileSuccessI[] = [];
         const errors: UploadTranscriptFileErrorI[] = [];
 
-        for (const transcriptFile of transcriptFiles) {
-            const file: File = transcriptFile.file;
-            try {
-                const formData: FormData = new FormData();
-                formData.append("file", file);
+        try {
+            const formData: FormData = new FormData();
+            formData.append("study_name", studyName);
+            transcriptFiles.forEach((t: TranscriptFileI) =>
+                formData.append("files", t.file),
+            );
 
-                const response: Response = await fetch(
-                    `${this.BACKEND_API_URL}/upload`,
-                    {
-                        method: APIMethodsType.POST,
-                        body: formData,
-                    },
-                );
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/upload_study_interviews`,
+                {
+                    method: APIMethodsType.POST,
+                    body: formData,
+                },
+            );
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok && data.file_id) {
-                    successes.push({
-                        fileId: data.file_id,
-                        filename: file.name,
-                    });
-                } else {
-                    const errorMsg = data.error ?? "Unknown error";
-
-                    errors.push({
-                        error: errorMsg,
-                        filename: file.name,
-                    });
-
-                    notificationsStore.addNotification({
-                        kind: "error",
-                        title: "File upload failed",
-                        subtitle: `${file.name}: ${errorMsg}`,
-                    });
-                }
-            } catch (e: unknown) {
-                const message =
-                    e instanceof Error ? e.message : "Unknown error";
+            if (response.ok && data.uploaded_files) {
+                study_id = data.study_id;
+                data.uploaded_files.forEach((f: any) => {
+                    successes.push({ fileId: f.file_id, filename: f.filename });
+                });
+            } else {
+                const errorMsg = data.error ?? "Unknown error";
 
                 errors.push({
-                    error: message,
-                    filename: file.name,
+                    error: errorMsg,
+                    filename: "Multiple files",
                 });
 
                 notificationsStore.addNotification({
                     kind: "error",
-                    title: "Network error",
-                    subtitle: `Could not upload ${file.name}: ${message}`,
+                    title: "Files upload failed",
+                    subtitle: errorMsg,
                 });
             }
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Unknown error";
+
+            errors.push({ error: message, filename: "Multiple files" });
+
+            notificationsStore.addNotification({
+                kind: "error",
+                title: "Network error",
+                subtitle: `Could not upload files: ${message}`,
+            });
         }
 
         if (successes.length > 0 && errors.length === 0) {
@@ -100,7 +100,7 @@ class ApiService {
             });
         }
 
-        return { successes, errors };
+        return { study_id, successes, errors };
     }
 
     public async identifyParticipant(
@@ -282,12 +282,102 @@ class ApiService {
         }
     }
 
+    private applySpeakerAnonymization(
+        lines: TranscriptLineI[],
+        map: SpeakerAnonymizationMap | null,
+    ): TranscriptLineI[] {
+        if (!map) return lines;
+
+        return lines.map((line: TranscriptLineI) => ({
+            ...line,
+            speaker: map[line.speaker] || line.speaker,
+        }));
+    }
+
+    private applyEntityAnonymization(
+        lines: TranscriptLineI[],
+        map: EntityAnonymizationMap,
+    ): TranscriptLineI[] {
+        const entityNames = Object.keys(map);
+        if (entityNames.length === 0) return lines;
+
+        const escapedNames: string[] = entityNames.map((name: string) =>
+            name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        );
+
+        const regex: RegExp = new RegExp(
+            `\\b(${escapedNames.join("|")})\\b`,
+            "g",
+        );
+
+        return lines.map((line: TranscriptLineI) => ({
+            ...line,
+            statement: line.statement.replace(
+                regex,
+                (matched) => map[matched] || matched,
+            ),
+        }));
+    }
+
+    private async updateTranscript(transcript: TranscriptFileI): Promise<void> {
+        if (!transcript.id) {
+            return;
+        }
+
+        try {
+            let transcriptLines: TranscriptLineI[] =
+                await this.getTranscriptLines(transcript.id);
+            transcriptLines = this.applySpeakerAnonymization(
+                transcriptLines,
+                transcript.speaker_anonymization_map,
+            );
+            transcriptLines = this.applyEntityAnonymization(
+                transcriptLines,
+                transcript.entity_anonymization_map,
+            );
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/update_transcript`,
+                {
+                    method: APIMethodsType.POST,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        file_id: transcript.id,
+                        content: transcriptLines,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data?.detail ?? data?.error ?? "Unknown error";
+
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Transcript update failed",
+                    subtitle: errorMsg,
+                });
+            }
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Unknown error";
+
+            notificationsStore.addNotification({
+                kind: "error",
+                title: "Network error",
+                subtitle: `Could not update transcript: ${message}`,
+            });
+        }
+    }
+
     public async getTranscriptTopics(
-        fileId: number,
+        transcript: TranscriptFileI,
     ): Promise<TranscriptTopicsResponse> {
         try {
+            await this.updateTranscript(transcript);
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/interview_topics/${fileId}`,
+                `${this.BACKEND_API_URL}/interview_topics/${transcript.id}`,
                 {
                     method: APIMethodsType.GET,
                     headers: this.getHeaders(),

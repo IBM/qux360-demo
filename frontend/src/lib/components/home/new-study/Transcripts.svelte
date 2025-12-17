@@ -50,7 +50,7 @@
         );
 
         const newStudy: StudyI = {
-            id: utilsService.getUniqueId(),
+            id: "",
             name: studyName,
             description: studyDescription,
             transcriptFiles: transcriptFiles,
