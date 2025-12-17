@@ -20,6 +20,7 @@ export enum StudyState {
 export enum StudyStatus {
     NeedsReview = "Needs review",
     Ready = "Ready",
+    Running = "Running theme suggestion",
     Error = "Error uploading transcript",
 }
 
@@ -47,13 +48,17 @@ export interface IdentifiedThemeI {
     validation: ValidationI | null;
 }
 
+export interface IdentifiedThemeMapI {
+    [interviewId: string]: IdentifiedThemeI[];
+}
+
 export interface StudyI {
     id: string;
     name: string;
     description: string;
     transcriptFiles: TranscriptFileI[];
     status: StudyStatus;
-    themes: IdentifiedThemeI[];
+    themes: IdentifiedThemeMapI;
     validation_strategy: ValidationStrategy;
 }
 
@@ -63,6 +68,26 @@ export interface SerializableStudyI {
     description: string;
     transcriptFiles: SerializableTranscriptFileI[];
     status: StudyStatus;
-    themes: IdentifiedThemeI[];
+    themes: IdentifiedThemeMapI;
     validation_strategy: ValidationStrategy;
+}
+
+// ─────────────────────────────────────────────
+// Responses Interfaces
+// ─────────────────────────────────────────────
+
+export interface StudyThemeResult {
+    result: IdentifiedThemeI[];
+    validation: ValidationI;
+    item_validations: ValidationI[];
+}
+
+export interface StudyTopicsResultMap {
+    [interviewId: string]: StudyThemeResult;
+}
+
+export interface StudyThemesResponse {
+    message?: string;
+    error?: string;
+    study_topics_result: StudyTopicsResultMap | null;
 }

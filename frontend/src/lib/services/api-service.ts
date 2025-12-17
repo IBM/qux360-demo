@@ -4,6 +4,8 @@ import type {
     IdentifyParticipantResponse,
     SpeakerAnonymizationMap,
     SpeakerAnonymizationResponse,
+    StudyI,
+    StudyThemesResponse,
     TranscriptFileI,
     TranscriptLineI,
     TranscriptTopicsResponse,
@@ -407,6 +409,48 @@ class ApiService {
             return {
                 error: "An error occurred while getting transcript topics",
                 interview_topics_result: null,
+            };
+        }
+    }
+
+    public async getStudyThemes(study: StudyI): Promise<StudyThemesResponse> {
+        try {
+            await Promise.all(
+                study.transcriptFiles.map((transcriptFile: TranscriptFileI) =>
+                    this.updateTranscript(transcriptFile),
+                ),
+            );
+            const response: Response = await fetch(
+                `${this.BACKEND_API_URL}/study_topics/${study.id}`,
+                {
+                    method: APIMethodsType.GET,
+                    headers: this.getHeaders(),
+                },
+            );
+
+            if (!response.ok) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Get study themes failed",
+                    subtitle: `HTTP error! Status: ${response.status}`,
+                });
+            }
+
+            const data: StudyThemesResponse = await response.json();
+
+            if (data.error) {
+                notificationsStore.addNotification({
+                    kind: "error",
+                    title: "Get study themes failed",
+                    subtitle: data.error,
+                });
+            }
+
+            return data;
+        } catch (error) {
+            return {
+                error: "An error occurred while getting study themes",
+                study_topics_result: null,
             };
         }
     }

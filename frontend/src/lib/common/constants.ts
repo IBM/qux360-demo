@@ -106,6 +106,12 @@ export const STUDY_STATUS_MAP: Record<StudyStatus, ExtendedStudyStatus> = {
         iconColor: ICON_DEFAULT_COLOR,
         state: StudyState.Ready,
     },
+    [StudyStatus.Running]: {
+        description: "Running theme suggestion",
+        icon: InProgress,
+        iconColor: ICON_DEFAULT_COLOR,
+        state: StudyState.Ready,
+    },
     [StudyStatus.Error]: {
         description: "There was an error when uploading the transcript",
         icon: WarningAltFilled,

@@ -6,11 +6,16 @@ import {
     ValidationStatus,
     ValidationStrategy,
     type EntityAnonymizationResponse,
+    type IdentifiedThemeI,
+    type IdentifiedThemeMapI,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
     type QuoteI,
     type SpeakerAnonymizationResponse,
     type StudyI,
+    type StudyThemeResult,
+    type StudyThemesResponse,
+    type StudyTopicsResultMap,
     type TranscriptFileI,
     type TranscriptTopicsResponse,
     type UploadTranscriptFileSuccessI,
@@ -654,9 +659,11 @@ const createStudiesStore = () => {
                 transcriptTopicsData.interview_topics_result.result.map(
                     (topic: IdentifiedTopicI, index: number) => ({
                         ...topic,
-                        validation:
-                            transcriptTopicsData.interview_topics_result!
+                        validation: {
+                            ...transcriptTopicsData.interview_topics_result!
                                 .item_validations[index],
+                            isApprovedByUser: false,
+                        },
                     }),
                 );
 
@@ -890,6 +897,83 @@ const createStudiesStore = () => {
                     return updatedStudy;
                 });
             });
+        },
+        runSuggestStudyThemes: async (studyId: string) => {
+            update((studies: StudyI[]) =>
+                studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        status: StudyStatus.Running,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                }),
+            );
+
+            let currentStudy: StudyI | undefined;
+            update((studies: StudyI[]) => {
+                currentStudy = studies.find((s) => s.id === studyId);
+                return studies;
+            });
+
+            if (!currentStudy) return;
+
+            const studyThemesResponse: StudyThemesResponse =
+                await apiService.getStudyThemes(currentStudy);
+
+            if (!studyThemesResponse.study_topics_result) {
+                update((studies: StudyI[]) =>
+                    studies.map((study: StudyI) => {
+                        if (study.id !== studyId) return study;
+
+                        const updatedStudy: StudyI = {
+                            ...study,
+                            status: StudyStatus.Ready,
+                        };
+
+                        studiesCacheService.update(updatedStudy);
+                        return updatedStudy;
+                    }),
+                );
+                return;
+            }
+
+            const resultMap: StudyTopicsResultMap =
+                studyThemesResponse.study_topics_result;
+
+            const themes: IdentifiedThemeMapI = {};
+
+            Object.entries(resultMap).forEach(
+                ([interviewId, themeResult]: [string, StudyThemeResult]) => {
+                    themes[interviewId] = themeResult.result.map(
+                        (theme: IdentifiedThemeI, index: number) => ({
+                            ...theme,
+                            validation: {
+                                ...themeResult.item_validations[index],
+                                isApprovedByUser: false,
+                            },
+                        }),
+                    );
+                },
+            );
+
+            update((studies: StudyI[]) =>
+                studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes,
+                        status: StudyStatus.Ready,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                }),
+            );
         },
     };
 };
