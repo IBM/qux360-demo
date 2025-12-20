@@ -1,8 +1,9 @@
 <script lang="ts">
     import { TRANSCRIPT_STATUS_MAP } from "$lib/common";
-    import type { TranscriptFileI } from "$lib/models";
+    import { TranscriptStatus, type TranscriptFileI } from "$lib/models";
     import { selectedTranscriptFileIdStore } from "$lib/stores";
     import { Checkbox, OverflowMenu } from "carbon-components-svelte";
+    import { CircleFill } from "carbon-icons-svelte";
 
     export let transcript: TranscriptFileI;
     export let checked: boolean = false;
@@ -33,7 +34,12 @@
         on:click={handleTranscriptCardClick}
     >
         <div class="transcript-details-internal-container">
-            <span class="transcript-name">{transcript.name}</span>
+            <div class="transcript-name">
+                {transcript.name}
+                {#if transcript.status === TranscriptStatus.Ready}
+                    <CircleFill style="fill: #24A148;" />
+                {/if}
+            </div>
             <div class="transcript-status-container">
                 <svelte:component
                     this={TRANSCRIPT_STATUS_MAP[transcript.status].icon}
@@ -41,7 +47,11 @@
                         .iconColor};"
                 />
                 <span class="transcript-status-text">
-                    {transcript.status}
+                    {#if transcript.status === TranscriptStatus.Ready}
+                        {transcript.topics.length} topics suggested
+                    {:else}
+                        {transcript.status}
+                    {/if}
                 </span>
             </div>
         </div>
@@ -109,6 +119,9 @@
     }
 
     .transcript-name {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.25rem;
         @include type.type-style("body-compact-02");
         font-weight: 700;
     }

@@ -27,7 +27,8 @@ export interface UploadTranscriptFileErrorI {
     filename: string;
 }
 
-export interface UploadTranscriptFileResultI {
+export interface UploadTranscriptFilesResultI {
+    study_id: string;
     successes: UploadTranscriptFileSuccessI[];
     errors: UploadTranscriptFileErrorI[];
 }
@@ -40,7 +41,6 @@ export enum TranscriptState {
     Running = "running",
     Ready = "ready",
     Review = "review",
-    Finish = "finish",
 }
 
 export enum TranscriptStatus {
@@ -50,7 +50,7 @@ export enum TranscriptStatus {
     ReadyForAnonymization = "Ready for anonymization",
     RunningAnonymization = "Running anonymization",
     ReadyForAnalysis = "Ready for analysis",
-    RunningTopicExtraction = "Running topic extraction",
+    RunningTopicSuggestion = "Running topic suggestion",
     TopicsNeedReview = "Topics need review",
     Ready = "Ready",
 }
@@ -133,6 +133,7 @@ export interface IdentifiedTopicI {
     explanation: string;
     quotes: QuoteI[];
     validation: ValidationI | null;
+    interview_id?: string;
 }
 
 export interface TranscriptFileI {

@@ -2,6 +2,7 @@
     import { TRANSCRIPT_STATUS_MAP } from "$lib/common";
     import {
         TranscriptState,
+        TranscriptStatus,
         type StudyI,
         type TranscriptFileI,
     } from "$lib/models";
@@ -11,7 +12,7 @@
         studiesStore,
     } from "$lib/stores";
     import { Stack, truncate } from "carbon-components-svelte";
-    import { ChevronDown, ChevronUp } from "carbon-icons-svelte";
+    import { ChevronDown, ChevronUp, CircleFill } from "carbon-icons-svelte";
 
     const handleStudyItemClick = (study: StudyI): void => {
         selectedStudyIdStore.set(study.id);
@@ -70,14 +71,21 @@
                         >
                             {transcriptFile.name}
                         </div>
-                        <svelte:component
-                            this={TRANSCRIPT_STATUS_MAP[transcriptFile.status]
-                                .icon}
-                            style={`
+                        {#if transcriptFile.status === TranscriptStatus.Ready}
+                            <CircleFill
+                                style="fill: #24A148; flex-shrink: 0; margin-top: 0.5rem;"
+                            />
+                        {:else}
+                            <svelte:component
+                                this={TRANSCRIPT_STATUS_MAP[
+                                    transcriptFile.status
+                                ].icon}
+                                style={`
                                 fill: ${TRANSCRIPT_STATUS_MAP[transcriptFile.status].iconColor};
                                 flex-shrink: 0;
                             `}
-                        />
+                            />
+                        {/if}
                     </div>
                 {/each}
             </Stack>

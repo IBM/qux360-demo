@@ -66,7 +66,7 @@
         <p class="confirm-participant-text">
             Confirm participant to start anonymization.
         </p>
-    {:else if $selectedTranscriptStore.status === TranscriptStatus.ReadyForAnonymization}
+    {:else if $selectedTranscriptStore.status === TranscriptStatus.ReadyForAnonymization || !speakerAnonymizationMap}
         <Button
             class="run-anonymization-button"
             kind="primary"

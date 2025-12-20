@@ -50,11 +50,12 @@
         );
 
         const newStudy: StudyI = {
-            id: utilsService.getUniqueId(),
+            id: "",
             name: studyName,
             description: studyDescription,
             transcriptFiles: transcriptFiles,
             status: StudyStatus.Ready,
+            themes: [],
             validation_strategy: ValidationStrategy.Strictest,
         };
         loadingRequestStore.startLoadingRequest();
@@ -63,6 +64,8 @@
 
         steps[currentStepIndex].isComplete = true;
         isCreatingStudy = false;
+
+        studiesStore.runTranscriptFilesParticipantIdentification(newStudy);
     };
 </script>
 

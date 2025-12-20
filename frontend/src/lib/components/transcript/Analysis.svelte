@@ -139,4 +139,9 @@
         @include type.type-style("body-compact-01");
         line-height: 1.125rem;
     }
+
+    :global(.topic-name-loading) {
+        height: 18px;
+        margin-bottom: unset;
+    }
 </style>

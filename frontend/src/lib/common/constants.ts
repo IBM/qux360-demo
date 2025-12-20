@@ -12,7 +12,6 @@ import {
 import {
     CheckmarkFilled,
     CheckmarkOutline,
-    CircleFill,
     ErrorFilled,
     ErrorOutline,
     Help,
@@ -26,7 +25,6 @@ export const APP_TITLE: string = "QUX 360 Analyzer";
 
 const ICON_DEFAULT_COLOR: string = "#525252";
 const ICON_ERROR_COLOR: string = "#da1e28";
-const ICON_SUCCESS_COLOR: string = "#198038";
 
 export const TRANSCRIPT_STATUS_MAP: Record<
     TranscriptStatus,
@@ -73,8 +71,8 @@ export const TRANSCRIPT_STATUS_MAP: Record<
         iconColor: ICON_DEFAULT_COLOR,
         state: TranscriptState.Ready,
     },
-    [TranscriptStatus.RunningTopicExtraction]: {
-        description: "System is in the process of extracting topics",
+    [TranscriptStatus.RunningTopicSuggestion]: {
+        description: "System is in the process of suggesting topics",
         icon: InProgress,
         iconColor: ICON_DEFAULT_COLOR,
         state: TranscriptState.Running,
@@ -89,9 +87,9 @@ export const TRANSCRIPT_STATUS_MAP: Record<
     [TranscriptStatus.Ready]: {
         description:
             "Displayed next to transcript names whenever there is new content ready that the user has not seen yet and all validation is high quality (e.g. participant identification, anonymization, topics)",
-        icon: CircleFill,
-        iconColor: ICON_SUCCESS_COLOR,
-        state: TranscriptState.Finish,
+        icon: CheckmarkOutline,
+        iconColor: ICON_DEFAULT_COLOR,
+        state: TranscriptState.Ready,
     },
 };
 
@@ -105,6 +103,12 @@ export const STUDY_STATUS_MAP: Record<StudyStatus, ExtendedStudyStatus> = {
     [StudyStatus.Ready]: {
         description: "All transcripts ready.",
         icon: CheckmarkOutline,
+        iconColor: ICON_DEFAULT_COLOR,
+        state: StudyState.Ready,
+    },
+    [StudyStatus.Running]: {
+        description: "Running theme suggestion",
+        icon: InProgress,
         iconColor: ICON_DEFAULT_COLOR,
         state: StudyState.Ready,
     },

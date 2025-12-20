@@ -2,6 +2,7 @@ __pycache__/
 .env
 node_modules
 backend/app/
+backend/src/app/database.db
 frontend/dist/
 package-lock.json
 poetry.lock

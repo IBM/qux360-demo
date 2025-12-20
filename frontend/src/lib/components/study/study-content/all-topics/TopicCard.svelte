@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { EditTopicModal, Quote } from "$lib/common";
+    import { EditTopicModal, SupportingQuotes } from "$lib/common";
     import type { IdentifiedTopicI, TopicCardI } from "$lib/models";
     import { Button } from "carbon-components-svelte";
     import { ChevronDown, ChevronUp, Edit } from "carbon-icons-svelte";
@@ -59,17 +59,7 @@
             </div>
 
             <div class="topic-card-internal-container">
-                <span class="topic-card-label">Supporting quotes</span>
-                <div class="supporting-quotes-container">
-                    {#each topicCard.topic.quotes as quote (quote.index)}
-                        <Quote
-                            index={quote.index}
-                            timestamp={quote.timestamp}
-                            speaker={quote.speaker}
-                            quote={quote.quote}
-                        />
-                    {/each}
-                </div>
+                <SupportingQuotes quotes={topicCard.topic.quotes} />
             </div>
 
             <div class="topic-card-internal-container">
@@ -147,12 +137,6 @@
     .topic-card-subheader {
         @include type.type-style("label-01");
         line-height: 1rem;
-    }
-
-    .supporting-quotes-container {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
     }
 
     :global(.topic-card-button) {

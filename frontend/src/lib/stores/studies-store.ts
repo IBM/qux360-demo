@@ -6,11 +6,14 @@ import {
     ValidationStatus,
     ValidationStrategy,
     type EntityAnonymizationResponse,
+    type IdentifiedThemeI,
     type IdentifiedTopicI,
     type IdentifyParticipantResponse,
     type QuoteI,
     type SpeakerAnonymizationResponse,
     type StudyI,
+    type StudyThemesResponse,
+    type StudyThemesResult,
     type TranscriptFileI,
     type TranscriptTopicsResponse,
     type UploadTranscriptFileSuccessI,
@@ -121,89 +124,12 @@ const createStudiesStore = () => {
     return {
         subscribe,
         refresh: () => set(studiesCacheService.getAllStudies()),
-        updateTranscriptFilesData: async (study: StudyI) => {
-            for (let i = 0; i < study.transcriptFiles.length; i++) {
-                const transcriptFile: TranscriptFileI =
-                    study.transcriptFiles[i];
-
-                if (
-                    transcriptFile.status ===
-                    TranscriptStatus.ReadyToIdentifyParticipants
-                ) {
-                    transcriptFile.status =
-                        TranscriptStatus.RunningParticipantIdentification;
-
-                    const data: IdentifyParticipantResponse =
-                        await apiService.identifyParticipant(
-                            transcriptFile.id!,
-                        );
-
-                    if (data.validation) {
-                        if (data.validation.status !== ValidationStatus.Ok) {
-                            transcriptFile.status =
-                                TranscriptStatus.ParticipantNeedsReview;
-                        } else if (
-                            data.validation.status === ValidationStatus.Ok
-                        ) {
-                            transcriptFile.status =
-                                TranscriptStatus.ReadyForAnonymization;
-                        }
-                    } else {
-                        transcriptFile.status =
-                            TranscriptStatus.ParticipantNeedsReview;
-                    }
-
-                    const updatedTranscriptFile: TranscriptFileI = {
-                        ...transcriptFile,
-                        participant: {
-                            name: data.participant,
-                            explanation: getParticipantExplanation(
-                                data.participant,
-                                data.validation,
-                            ),
-                            showExplanation: true,
-                            validation: data.validation,
-                        },
-                        speakers: data.speakers,
-                    };
-
-                    study.transcriptFiles[i] = updatedTranscriptFile;
-                    study.status = computeStudyStatus(study);
-
-                    await studiesCacheService.update(study);
-                    update((studies: StudyI[]) =>
-                        studies.map((s: StudyI) =>
-                            s.id === study.id ? study : s,
-                        ),
-                    );
-
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                }
-            }
-        },
-        updateTranscriptFiles: async (
-            studyId: string,
-            newTranscriptFiles: TranscriptFileI[],
-        ) => {
-            update((studies: StudyI[]) => {
-                return studies.map((study: StudyI) => {
-                    if (study.id !== studyId) return study;
-
-                    const updatedStudy: StudyI = {
-                        ...study,
-                        transcriptFiles: newTranscriptFiles,
-                    };
-                    updatedStudy.status = computeStudyStatus(updatedStudy);
-
-                    studiesCacheService.update(updatedStudy);
-                    return updatedStudy;
-                });
-            });
-        },
         add: async (study: StudyI): Promise<void> => {
-            const { successes, errors } = await apiService.uploadFiles(
-                study.transcriptFiles,
-            );
+            const { study_id, successes, errors } =
+                await apiService.uploadStudyFiles(
+                    study.name,
+                    study.transcriptFiles,
+                );
             if (errors.length > 0) {
                 notificationsStore.addNotification({
                     kind: "error",
@@ -213,6 +139,7 @@ const createStudiesStore = () => {
                 return;
             }
 
+            study.id = study_id;
             study.transcriptFiles = study.transcriptFiles.map(
                 (transcriptFile: TranscriptFileI) => {
                     // Find the corresponding success result for each transcriptFile
@@ -242,6 +169,12 @@ const createStudiesStore = () => {
                 subtitle: `Study '${study.name}' was added successfully.`,
             });
         },
+        delete: (id: string) => {
+            studiesCacheService.delete(id);
+            update((studies: StudyI[]) =>
+                studies.filter((s: StudyI) => s.id !== id),
+            );
+        },
         update: async (updatedStudy: StudyI): Promise<void> => {
             updatedStudy.status = computeStudyStatus(updatedStudy);
 
@@ -252,11 +185,160 @@ const createStudiesStore = () => {
                 ),
             );
         },
-        delete: (id: string) => {
-            studiesCacheService.delete(id);
-            update((studies: StudyI[]) =>
-                studies.filter((s: StudyI) => s.id !== id),
+        updateTranscriptFiles: async (
+            studyId: string,
+            newTranscriptFiles: TranscriptFileI[],
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: newTranscriptFiles,
+                    };
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        runTranscriptFilesParticipantIdentification: async (study: StudyI) => {
+            const transcriptsToIdentify: TranscriptFileI[] =
+                study.transcriptFiles.filter(
+                    (t: TranscriptFileI) =>
+                        t.status ===
+                        TranscriptStatus.ReadyToIdentifyParticipants,
+                );
+
+            const identificationPromises: Promise<TranscriptFileI>[] =
+                transcriptsToIdentify.map(
+                    async (transcriptFile: TranscriptFileI) => {
+                        transcriptFile.status =
+                            TranscriptStatus.RunningParticipantIdentification;
+
+                        const data: IdentifyParticipantResponse =
+                            await apiService.identifyParticipant(
+                                transcriptFile.id!,
+                            );
+
+                        if (data.validation) {
+                            if (
+                                data.validation.status !== ValidationStatus.Ok
+                            ) {
+                                transcriptFile.status =
+                                    TranscriptStatus.ParticipantNeedsReview;
+                            } else {
+                                transcriptFile.status =
+                                    TranscriptStatus.ReadyForAnonymization;
+                            }
+                        } else {
+                            transcriptFile.status =
+                                TranscriptStatus.ParticipantNeedsReview;
+                        }
+
+                        return {
+                            ...transcriptFile,
+                            participant: {
+                                name: data.participant,
+                                explanation: getParticipantExplanation(
+                                    data.participant,
+                                    data.validation,
+                                ),
+                                showExplanation: true,
+                                validation: data.validation,
+                            },
+                            speakers: data.speakers,
+                        };
+                    },
+                );
+
+            const updatedTranscripts: TranscriptFileI[] = await Promise.all(
+                identificationPromises,
             );
+
+            study.transcriptFiles = study.transcriptFiles.map(
+                (t: TranscriptFileI) => {
+                    const updated: TranscriptFileI | undefined =
+                        updatedTranscripts.find(
+                            (ut: TranscriptFileI) => ut.id === t.id,
+                        );
+                    return updated || t;
+                },
+            );
+
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
+        },
+        runParticipantIdentification: async (
+            study: StudyI,
+            transcriptFileId: number,
+        ) => {
+            const transcriptFileIndex: number = study.transcriptFiles.findIndex(
+                (t: TranscriptFileI) => t.id === transcriptFileId,
+            );
+            if (transcriptFileIndex === -1) {
+                return;
+            }
+
+            const transcriptFile: TranscriptFileI =
+                study.transcriptFiles[transcriptFileIndex];
+
+            transcriptFile.status =
+                TranscriptStatus.RunningParticipantIdentification;
+            study.transcriptFiles[transcriptFileIndex] = transcriptFile;
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
+
+            await new Promise((r) => setTimeout(r, 500));
+
+            const data: IdentifyParticipantResponse =
+                await apiService.identifyParticipant(transcriptFile.id!);
+
+            if (data.validation) {
+                if (data.validation.status !== ValidationStatus.Ok) {
+                    transcriptFile.status =
+                        TranscriptStatus.ParticipantNeedsReview;
+                } else if (data.validation.status === ValidationStatus.Ok) {
+                    transcriptFile.status =
+                        TranscriptStatus.ReadyForAnonymization;
+                }
+            } else {
+                transcriptFile.status = TranscriptStatus.ParticipantNeedsReview;
+            }
+
+            const updatedTranscriptFile: TranscriptFileI = {
+                ...transcriptFile,
+                participant: {
+                    name: data.participant,
+                    explanation: getParticipantExplanation(
+                        data.participant,
+                        data.validation,
+                    ),
+                    showExplanation: true,
+                    validation: data.validation,
+                },
+                speakers: data.speakers,
+            };
+
+            study.transcriptFiles[transcriptFileIndex] = updatedTranscriptFile;
+            study.status = computeStudyStatus(study);
+
+            await studiesCacheService.update(study);
+            update((studies: StudyI[]) =>
+                studies.map((s: StudyI) => (s.id === study.id ? study : s)),
+            );
+
+            await new Promise((r) => setTimeout(r, 500));
         },
         runTranscriptSpeakerAnonymization: async (
             study: StudyI,
@@ -505,7 +587,14 @@ const createStudiesStore = () => {
                 });
             });
         },
-        runSuggestTopics: async (studyId: string, transcriptFileId: number) => {
+        runSuggestTopics: async (
+            studyId: string,
+            transcript: TranscriptFileI,
+        ) => {
+            if (!transcript.id) {
+                return;
+            }
+
             update((studies: StudyI[]) => {
                 return studies.map((study: StudyI) => {
                     if (study.id !== studyId) return study;
@@ -513,12 +602,12 @@ const createStudiesStore = () => {
                     const updatedFiles: TranscriptFileI[] =
                         study.transcriptFiles.map(
                             (transcriptFile: TranscriptFileI) => {
-                                if (transcriptFile.id !== transcriptFileId)
+                                if (transcriptFile.id !== transcript.id)
                                     return transcriptFile;
 
                                 return {
                                     ...transcriptFile,
-                                    status: TranscriptStatus.RunningTopicExtraction,
+                                    status: TranscriptStatus.RunningTopicSuggestion,
                                 };
                             },
                         );
@@ -533,9 +622,34 @@ const createStudiesStore = () => {
             });
 
             const transcriptTopicsData: TranscriptTopicsResponse =
-                await apiService.getTranscriptTopics(transcriptFileId);
+                await apiService.getTranscriptTopics(transcript);
 
             if (!transcriptTopicsData.interview_topics_result) {
+                update((studies: StudyI[]) => {
+                    return studies.map((study: StudyI) => {
+                        if (study.id !== studyId) return study;
+
+                        const updatedFiles: TranscriptFileI[] =
+                            study.transcriptFiles.map(
+                                (transcriptFile: TranscriptFileI) => {
+                                    if (transcriptFile.id !== transcript.id)
+                                        return transcriptFile;
+
+                                    return {
+                                        ...transcriptFile,
+                                        status: TranscriptStatus.ReadyForAnalysis,
+                                    };
+                                },
+                            );
+
+                        const updatedStudy: StudyI = {
+                            ...study,
+                            transcriptFiles: updatedFiles,
+                        };
+                        studiesCacheService.update(updatedStudy);
+                        return updatedStudy;
+                    });
+                });
                 return;
             }
 
@@ -543,9 +657,11 @@ const createStudiesStore = () => {
                 transcriptTopicsData.interview_topics_result.result.map(
                     (topic: IdentifiedTopicI, index: number) => ({
                         ...topic,
-                        validation:
-                            transcriptTopicsData.interview_topics_result!
+                        validation: {
+                            ...transcriptTopicsData.interview_topics_result!
                                 .item_validations[index],
+                            isApprovedByUser: false,
+                        },
                     }),
                 );
 
@@ -555,7 +671,7 @@ const createStudiesStore = () => {
 
                     const updatedFiles: TranscriptFileI[] =
                         study.transcriptFiles.map((t: TranscriptFileI) => {
-                            if (t.id !== transcriptFileId) return t;
+                            if (t.id !== transcript.id) return t;
 
                             return {
                                 ...t,
@@ -612,7 +728,46 @@ const createStudiesStore = () => {
 
                             return {
                                 ...t,
+                                status: updatedTopics.every(
+                                    (topic: IdentifiedTopicI) =>
+                                        topic.validation?.status ===
+                                            ValidationStatus.Ok ||
+                                        topic.validation?.isApprovedByUser,
+                                )
+                                    ? TranscriptStatus.Ready
+                                    : TranscriptStatus.TopicsNeedReview,
                                 topics: updatedTopics,
+                            };
+                        });
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        transcriptFiles: updatedFiles,
+                    };
+
+                    updatedStudy.status = computeStudyStatus(updatedStudy);
+                    studiesCacheService.update(updatedStudy);
+
+                    return updatedStudy;
+                });
+            });
+        },
+        addTopic: (
+            studyId: string,
+            transcriptFileId: number,
+            newTopic: IdentifiedTopicI,
+        ) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedFiles: TranscriptFileI[] =
+                        study.transcriptFiles.map((t: TranscriptFileI) => {
+                            if (t.id !== transcriptFileId) return t;
+
+                            return {
+                                ...t,
+                                topics: [...t.topics, newTopic],
                             };
                         });
 
@@ -697,6 +852,14 @@ const createStudiesStore = () => {
 
                             return {
                                 ...t,
+                                status: updatedTopics.every(
+                                    (topic: IdentifiedTopicI) =>
+                                        topic.validation?.status ===
+                                            ValidationStatus.Ok ||
+                                        topic.validation?.isApprovedByUser,
+                                )
+                                    ? TranscriptStatus.Ready
+                                    : TranscriptStatus.TopicsNeedReview,
                                 topics: updatedTopics,
                             };
                         });
@@ -729,6 +892,131 @@ const createStudiesStore = () => {
                     updatedStudy.status = computeStudyStatus(updatedStudy);
                     studiesCacheService.update(updatedStudy);
 
+                    return updatedStudy;
+                });
+            });
+        },
+        runSuggestStudyThemes: async (studyId: string) => {
+            update((studies: StudyI[]) =>
+                studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        status: StudyStatus.Running,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                }),
+            );
+
+            let currentStudy: StudyI | undefined;
+            update((studies: StudyI[]) => {
+                currentStudy = studies.find((s) => s.id === studyId);
+                return studies;
+            });
+
+            if (!currentStudy) return;
+
+            const studyThemesResponse: StudyThemesResponse =
+                await apiService.getStudyThemes(currentStudy);
+
+            if (!studyThemesResponse.study_topics_result) {
+                update((studies: StudyI[]) =>
+                    studies.map((study: StudyI) => {
+                        if (study.id !== studyId) return study;
+
+                        const updatedStudy: StudyI = {
+                            ...study,
+                            status: StudyStatus.Ready,
+                        };
+
+                        studiesCacheService.update(updatedStudy);
+                        return updatedStudy;
+                    }),
+                );
+                return;
+            }
+
+            const resultMap: StudyThemesResult =
+                studyThemesResponse.study_topics_result;
+
+            const themes: IdentifiedThemeI[] = resultMap.result.map(
+                (theme: IdentifiedThemeI, index: number) => ({
+                    ...theme,
+                    validation: {
+                        ...studyThemesResponse.study_topics_result!
+                            .item_validations[index],
+                        isApprovedByUser: false,
+                    },
+                }),
+            );
+
+            update((studies: StudyI[]) =>
+                studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes,
+                        status: StudyStatus.Ready,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                }),
+            );
+        },
+        approveTheme: (studyId: string, identifiedTheme: IdentifiedThemeI) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedThemes: IdentifiedThemeI[] = study.themes.map(
+                        (theme: IdentifiedThemeI) => {
+                            if (theme.title !== identifiedTheme.title)
+                                return theme;
+
+                            if (!theme.validation) return theme;
+
+                            return {
+                                ...theme,
+                                validation: {
+                                    ...theme.validation,
+                                    isApprovedByUser: true,
+                                },
+                            };
+                        },
+                    );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes: updatedThemes,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
+                    return updatedStudy;
+                });
+            });
+        },
+        removeTheme: (studyId: string, themeTopicToRemove: string) => {
+            update((studies: StudyI[]) => {
+                return studies.map((study: StudyI) => {
+                    if (study.id !== studyId) return study;
+
+                    const updatedThemes: IdentifiedThemeI[] =
+                        study.themes.filter(
+                            (theme: IdentifiedThemeI) =>
+                                theme.title !== themeTopicToRemove,
+                        );
+
+                    const updatedStudy: StudyI = {
+                        ...study,
+                        themes: updatedThemes,
+                    };
+
+                    studiesCacheService.update(updatedStudy);
                     return updatedStudy;
                 });
             });

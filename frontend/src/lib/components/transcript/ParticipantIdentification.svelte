@@ -5,11 +5,17 @@
         isParticipantIdentificationRunningStore,
         isParticipantNeedsReviewStore,
         selectedStudyIdStore,
+        selectedStudyStore,
         selectedTranscriptFileIdStore,
         selectedTranscriptStore,
         studiesStore,
     } from "$lib/stores";
-    import { Dropdown, DropdownSkeleton, Link } from "carbon-components-svelte";
+    import {
+        Button,
+        Dropdown,
+        DropdownSkeleton,
+        Link,
+    } from "carbon-components-svelte";
 
     let speakersDropdownItems: DropdownItem[] = [];
     let speakerSelectedId: number = 0;
@@ -33,6 +39,15 @@
             })?.id || 0;
     }
 
+    const handleRunParticipantIdentificationButtonClick = (): void => {
+        if ($selectedStudyStore && $selectedTranscriptFileIdStore) {
+            studiesStore.runParticipantIdentification(
+                $selectedStudyStore,
+                $selectedTranscriptFileIdStore,
+            );
+        }
+    };
+
     const updateParticipantExplanation = (): void => {
         if ($selectedStudyIdStore && $selectedTranscriptFileIdStore) {
             studiesStore.updateParticipantExplanation(
@@ -55,6 +70,14 @@
     </div>
     {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}
         <DropdownSkeleton />
+    {:else if $selectedTranscriptStore.participant.name.length === 0}
+        <Button
+            kind="primary"
+            size="field"
+            on:click={handleRunParticipantIdentificationButtonClick}
+        >
+            Run participant identification
+        </Button>
     {:else if $selectedTranscriptStore.participant.validation}
         <div class="participant-dropdown-container">
             <Dropdown

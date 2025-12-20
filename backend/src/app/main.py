@@ -1,40 +1,39 @@
-from http.client import HTTPException
-from typing import Any
-from fastapi import FastAPI, UploadFile, File
-from fastapi.concurrency import run_in_threadpool
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import tempfile
-from qux360.core import Interview
-from mellea import MelleaSession
-from mellea.backends.litellm import LiteLLMBackend, litellm
-from dotenv import load_dotenv
+import io
 import logging
 import os
 import sqlite3
+import tempfile
+from http.client import HTTPException
 from pathlib import Path
-from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Any, List
+import uuid
+from dotenv import load_dotenv
+from fastapi import FastAPI, Form, UploadFile, File
+from fastapi.concurrency import run_in_threadpool
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from mellea import MelleaSession
+from mellea.backends.litellm import LiteLLMBackend
 import pandas as pd
-import io
+from pydantic import BaseModel
+from qux360.core import Interview, Study, TopicList
+
+
+load_dotenv()
 
 app = FastAPI()
-load_dotenv()
-ROOT_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
 
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))
+m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID")))  # type: ignore
 
 # Suppress Mellea's FancyLogger (MelleaSession resets it to DEBUG, so we set it here)
-logging.getLogger('fancy_logger').setLevel(logging.WARNING)
+logging.getLogger("fancy_logger").setLevel(logging.WARNING)
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING, format='%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
 # Enable INFO logging only for qux360
 logging.getLogger("qux360").setLevel(logging.INFO)
 
-
-m = MelleaSession(backend=LiteLLMBackend(model_id=os.getenv("MODEL_ID"))) # type: ignore
 
 # Allow frontend (Svelte) to access backend
 app.add_middleware(
@@ -45,61 +44,121 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = Path.cwd().joinpath("uploads.db")
+DB_PATH = Path.cwd().joinpath("database.db")
 
-
-class FilePathRequest(BaseModel):
-    path: str
-
-
-class FileIdRequest(BaseModel):
-    id: int
-
-class SpeakersPayload(BaseModel):
-    fileId: int
-    anonymization_map: Dict[str, Any]
 
 # Initialize a very small SQLite DB to store uploaded files as blobs
 def init_db(path: Path):
     conn = sqlite3.connect(path)
     cur = conn.cursor()
+
     cur.execute(
         """
-        CREATE TABLE IF NOT EXISTS uploads (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            filename TEXT NOT NULL,
-            content BLOB NOT NULL
+        CREATE TABLE IF NOT EXISTS Studies (
+            id TEXT PRIMARY KEY,
+            name TEXT
         )
         """
     )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS Interviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            study_id TEXT,
+            filename TEXT NOT NULL,
+            content BLOB NOT NULL,
+            FOREIGN KEY (study_id) REFERENCES Studies(id) ON DELETE CASCADE
+        )
+        """
+    )
+
     conn.commit()
     conn.close()
+
+
+init_db(DB_PATH)
 
 
 def get_connection() -> sqlite3.Connection:
     return sqlite3.connect(DB_PATH)
 
 
-def save_file_to_db(filename: str, content: bytes) -> int:
+def save_study(name: str) -> str:
+    study_id = str(uuid.uuid4())
     conn = get_connection()
     try:
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO uploads (filename, content) VALUES (?, ?)",
-            (filename, content),
-        )
+        cur.execute("INSERT INTO Studies (id, name) VALUES (?, ?)", (study_id, name))
         conn.commit()
-        return cur.lastrowid
+        return study_id
     finally:
         conn.close()
 
 
-def update_file_in_db(file_id: int, filename: str, content: bytes) -> int:
+def get_study_by_name(name: str) -> str | None:
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM Studies WHERE name = ?", (name,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+
+def save_or_update_interview(
+    study_id: str, filename: str, content: bytes
+) -> int | None:
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE uploads SET content = ?, filename = ? WHERE id = ?",
+            "SELECT id FROM Interviews WHERE study_id = ? AND filename = ?",
+            (study_id, filename),
+        )
+        row = cur.fetchone()
+        if row:
+            interview_id = row[0]
+            cur.execute(
+                "UPDATE Interviews SET content = ? WHERE id = ?",
+                (content, interview_id),
+            )
+            print(f"♻️ Updated file '{filename}' with id {interview_id}")
+        else:
+            cur.execute(
+                "INSERT INTO Interviews (study_id, filename, content) VALUES (?, ?, ?)",
+                (study_id, filename, content),
+            )
+            interview_id = cur.lastrowid
+            print(f"✅ Inserted new file '{filename}' with id {interview_id}")
+        conn.commit()
+        return interview_id
+    finally:
+        conn.close()
+
+
+def delete_removed_interviews(study_id: str, new_filenames: List[str | None]):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        if new_filenames:
+            placeholders = ",".join("?" * len(new_filenames))
+            sql = f"DELETE FROM Interviews WHERE study_id = ? AND filename NOT IN ({placeholders})"
+            cur.execute(sql, [study_id, *new_filenames])
+        else:
+            cur.execute("DELETE FROM Interviews WHERE study_id = ?", (study_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_interview_in_db(file_id: int, filename: str, content: bytes) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE Interviews SET content = ?, filename = ? WHERE id = ?",
             (sqlite3.Binary(content), filename, file_id),
         )
         conn.commit()
@@ -108,11 +167,11 @@ def update_file_in_db(file_id: int, filename: str, content: bytes) -> int:
         conn.close()
 
 
-def get_file_from_db(file_id: int):
+def get_interview_from_db(file_id: int):
     conn = get_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT filename, content FROM uploads WHERE id = ?", (file_id,))
+        cur.execute("SELECT filename, content FROM Interviews WHERE id = ?", (file_id,))
         row = cur.fetchone()
         if not row:
             return None
@@ -131,53 +190,42 @@ def write_temp_file(row: dict[str, Any]) -> str:
     return tmp_path
 
 
-def upload_file_sync(file: UploadFile):
-    content = file.file.read()
-    print(f"📁 Uploading file: {file.filename}, size: {len(content)} bytes")
-    file_id = save_file_to_db(file.filename, content)
-    print(f"✅ File saved in DB with id: {file_id}")
-    return {"file_id": file_id}
+def upload_interview_sync(study_name: str, files: List[UploadFile]):
+    study_id: str | None = get_study_by_name(study_name)
+    if not study_id:
+        study_id = save_study(study_name)
+
+    new_filenames = [file.filename for file in files]
+
+    delete_removed_interviews(study_id, new_filenames)
+
+    uploaded_files = []
+    for file in files:
+        content = file.file.read()
+        print(f"📁 Uploading file: {file.filename}, size: {len(content)} bytes")
+        interview_id = save_or_update_interview(study_id, file.filename, content)
+        print(f"✅ File saved in DB with id: {interview_id}")
+        uploaded_files.append({"file_id": interview_id, "filename": file.filename})
+
+    return {"study_id": study_id, "uploaded_files": uploaded_files}
 
 
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+@app.post("/upload_study_interviews")
+async def upload_study_interviews(
+    study_name: str = Form(...), files: List[UploadFile] = File(...)
+):
     """Save uploaded file and return its temp path"""
     try:
-        return await run_in_threadpool(upload_file_sync, file)
+        return await run_in_threadpool(upload_interview_sync, study_name, files)
     except Exception as e:
         print(f"❌ Upload failed: {e}")
         return {"error": str(e)}
-
-
-'''
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    """Save uploaded file and return its file ID in the DB"""
-    try:
-        content = await file.read()
-        i = Interview(content)
-        transcript_raw = i.transcript_raw
-        selected_df = transcript_raw[["timestamp", "speaker", "statement"]]
-        data = [
-            {"index": idx, **row}
-            for idx, row in enumerate(selected_df.to_dict(orient="records"))
-        ]
-
-        transcript_json = JSONResponse(content=data)
-        print(f"📁 Uploading file: {file.filename}, size: {len(transcript_json)} bytes")
-        file_id = save_file_to_db(file.filename, transcript_json)
-        print(f"✅ File saved in DB with id: {file_id}")
-        return {"file_id": file_id}
-    except Exception as e:
-        print(f"❌ Upload failed: {e}")
-        return {"error": str(e)}
-'''
 
 
 def identify_participant_sync(file_id: int):
     print(f"🔍 Extracting speakers and identifying participant from file id: {file_id}")
 
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {
             "error": "file not found",
@@ -211,7 +259,7 @@ async def identify_participant(file_id: int):
 
 def speakers_anonymization_map_sync(file_id: int):
     print(f"🔍 Building speakers anonymization map for file id: {file_id}")
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {"speakers_anonymization_map": {}, "error": "file not found"}
 
@@ -235,53 +283,9 @@ async def get_speakers_anonymization_map(file_id: int):
         return {"speakers_anonymization_map": {}, "error": str(e)}
 
 
-@app.post("/anonymize_speakers")
-async def anonymize_speakers(speakers: SpeakersPayload):
-    file_id = speakers.fileId
-    anonymization_map = speakers.anonymization_map
-    print(f"🔍 Anonymizing speakers for file id: {file_id} with map: {anonymization_map}")
-    row = get_file_from_db(file_id)
-    if not row:
-        return {"anonymized_speakers_map": "", "error": "file not found"}
-
-    suffix = Path(row["filename"]).suffix or ".xlsx"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(row["content"])
-        tmp_path = tmp.name
-
-    try:
-        i = Interview(tmp_path)
-
-        if "speaker" not in i.transcript.columns:
-            raise ValueError("No 'speaker' column found in the transcript.")
-
-        i.speaker_mapping = anonymization_map
-        for k in anonymization_map.keys():
-            old = k
-            new = anonymization_map.get(k)
-
-            print(f"🔄 Renaming speaker '{old}' to '{new}'")
-            anonymized_map = i.rename_speaker(old, new)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as updated_tmp:
-            i.to_xlsx(updated_tmp, include_enriched=False)
-            updated_tmp_path = updated_tmp.name
-
-        with open(updated_tmp_path, "rb") as f:
-            updated_content = f.read()
-            filename = Path(row["filename"]).stem + ".xlsx"
-            file_id = update_file_in_db(file_id, filename, updated_content)
-            print(f"✅ File updated in DB with id: {file_id}")
-            return {"message": "Speakers anonymized", "anonymized_speakers_map": anonymized_map}
-
-    except Exception as e:
-        print(f"❌ qux360-demo failed: {e}")
-        return {"anonymized_speakers_map": "", "error": str(e)}
-
-
 def entities_anonymization_map_sync(file_id: int):
     print(f"🔍 Building entities anonymization map for file id: {file_id}")
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {"entities_anonymization_map": {}, "error": "file not found"}
 
@@ -307,7 +311,7 @@ async def get_entities_anonymization_map(file_id: int):
 
 
 def transcript_sync(file_id: int):
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {"error": "file not found"}
 
@@ -342,6 +346,7 @@ def json_to_xlsx_bytes(records: list[dict]) -> bytes:
         raise ValueError("No data provided to generate XLSX.")
 
     df = pd.DataFrame(records)
+    df = df[["timestamp", "speaker", "statement"]]
 
     buffer = io.BytesIO()
 
@@ -353,7 +358,7 @@ def json_to_xlsx_bytes(records: list[dict]) -> bytes:
 
 
 def update_transcript_sync(file_id: int, content: list[dict]):
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {"error": "file not found"}
 
@@ -364,7 +369,7 @@ def update_transcript_sync(file_id: int, content: list[dict]):
 
     # Update DB
     filename = Path(row["filename"]).stem + ".xlsx"
-    updated_id = update_file_in_db(file_id, filename, xlsx_bytes)
+    updated_id = update_interview_in_db(file_id, filename, xlsx_bytes)
 
     print(f"✅ File updated in DB with id: {updated_id}")
 
@@ -374,13 +379,18 @@ def update_transcript_sync(file_id: int, content: list[dict]):
     }
 
 
+class UpdateTranscriptPayload(BaseModel):
+    file_id: int
+    content: list[dict]
+
+
 @app.post("/update_transcript")
-async def update_transcript(file_id: int, content: list[dict]):
+async def update_transcript(payload: UpdateTranscriptPayload):
     try:
         return await run_in_threadpool(
             update_transcript_sync,
-            file_id,
-            content,
+            payload.file_id,
+            payload.content,
         )
 
     except ValueError as e:
@@ -399,7 +409,7 @@ def get_interview_topics_sync(
 ):
     print(f"🔍 Getting suggested topics for interview with file id: {file_id}")
 
-    row = get_file_from_db(file_id)
+    row = get_interview_from_db(file_id)
     if not row:
         return {"interview_topics_result": None, "error": "file not found"}
 
@@ -435,3 +445,81 @@ async def get_suggested_topics_for_interview(
     except Exception as e:
         print(f"❌ qux360-demo failed: {e}")
         return {"interview_topics_result": None, "error": str(e)}
+
+
+def get_interviews_for_study_from_db(study_id: str):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, filename, content
+            FROM Interviews
+            WHERE study_id = ?
+            ORDER BY id
+            """,
+            (study_id,),
+        )
+        rows = cur.fetchall()
+        return [{"id": r[0], "filename": r[1], "content": r[2]} for r in rows]
+    finally:
+        conn.close()
+
+
+def get_study_themes_sync(
+    study_id: str,
+    topics: List[TopicList] | None,
+    top_n: int,
+    study_context: str,
+):
+    print(f"🔍 Getting suggested topics for study: {study_id}")
+
+    rows = get_interviews_for_study_from_db(study_id)
+    if not rows:
+        return {
+            "study_topics_result": None,
+            "error": "study has no interviews",
+        }
+
+    interviews = []
+
+    for row in rows:
+        tmp_path = write_temp_file(row)
+        interview = Interview(tmp_path)
+        interview.id = row["id"]
+        interview.identify_interviewee(m)
+        interviews.append(interview)
+
+    study = Study(interviews)
+
+    topics_result = study.suggest_themes(m, top_n, study_context, topic_lists=topics)
+
+    return {
+        "message": "Suggested topics result for study",
+        "study_topics_result": topics_result,
+    }
+
+
+class SuggestThemesPayload(BaseModel):
+    study_id: str
+    topics: List[TopicList] | None = None
+    top_n: int = 5
+    study_context: str = "General"
+
+
+@app.post("/study_themes")
+async def get_suggested_themes_for_study(payload: SuggestThemesPayload):
+    try:
+        return await run_in_threadpool(
+            get_study_themes_sync,
+            payload.study_id,
+            payload.topics,
+            payload.top_n,
+            payload.study_context,
+        )
+    except Exception as e:
+        print(f"❌ study theme suggestion failed: {e}")
+        return {
+            "study_topics_result": None,
+            "error": str(e),
+        }
