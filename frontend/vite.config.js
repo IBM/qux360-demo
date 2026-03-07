@@ -23,6 +23,9 @@ export default defineConfig({
             $lib: path.resolve(__dirname, "src/lib"),
         },
     },
+    build: {
+        outDir: "build",
+    },
     root: ".",
     server: {
         host: "0.0.0.0",
