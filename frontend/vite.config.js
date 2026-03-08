@@ -5,6 +5,7 @@ import { sveltePreprocess } from "svelte-preprocess";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+    base: "/qux360-demo/",
     plugins: [
         svelte({
             preprocess: [
