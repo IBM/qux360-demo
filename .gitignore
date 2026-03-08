@@ -9,4 +9,3 @@ backend/venv
 frontend/build/
 frontend/dist/
 frontend/node_modules
-frontend/package-lock.json
