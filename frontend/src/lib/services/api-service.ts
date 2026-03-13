@@ -40,6 +40,19 @@ class ApiService {
         };
     }
 
+    private async extractErrorMessage(
+        response: Response,
+        data: any,
+    ): Promise<string> {
+        if (data?.detail) {
+            return typeof data.detail === "string"
+                ? data.detail
+                : JSON.stringify(data.detail);
+        }
+        if (data?.error) return data.error;
+        return `Request failed with status ${response.status}: ${response.statusText}`;
+    }
+
     public async uploadStudyFiles(
         studyName: string,
         transcriptFiles: TranscriptFileI[],
@@ -71,7 +84,7 @@ class ApiService {
                     successes.push({ fileId: f.file_id, filename: f.filename });
                 });
             } else {
-                const errorMsg = data.error ?? "Unknown error";
+                const errorMsg = await this.extractErrorMessage(response, data);
 
                 errors.push({
                     error: errorMsg,
@@ -119,22 +132,21 @@ class ApiService {
                 },
             );
 
-            if (!response.ok) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Participant identification failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
-                });
-            }
-
             const data = await response.json();
 
-            if (data.error) {
+            if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Participant identification failed",
-                    subtitle: data.error,
+                    subtitle: errorMsg,
                 });
+                return {
+                    error: errorMsg,
+                    speakers: [],
+                    participant: "",
+                    validation: null,
+                };
             }
 
             return {
@@ -166,22 +178,19 @@ class ApiService {
                 },
             );
 
+            const data = await response.json();
+
             if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Speaker anonymization failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
+                    subtitle: errorMsg,
                 });
-            }
-
-            const data: SpeakerAnonymizationResponse = await response.json();
-
-            if (data.error) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Speaker anonymization failed",
-                    subtitle: data.error,
-                });
+                return {
+                    error: errorMsg,
+                    speakers_anonymization_map: null,
+                };
             }
 
             return data;
@@ -205,22 +214,19 @@ class ApiService {
                 },
             );
 
+            const data = await response.json();
+
             if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Entity anonymization failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
+                    subtitle: errorMsg,
                 });
-            }
-
-            const data: EntityAnonymizationResponse = await response.json();
-
-            if (data.error) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Entity anonymization failed",
-                    subtitle: data.error,
-                });
+                return {
+                    error: errorMsg,
+                    entities_anonymization_map: null,
+                };
             }
 
             return data;
@@ -248,23 +254,14 @@ class ApiService {
                 },
             );
 
-            if (!response.ok) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Transcript fetch failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
-                });
-
-                return [];
-            }
-
             const data = await response.json();
 
-            if ((data as any).error) {
+            if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Transcript fetch failed",
-                    subtitle: (data as any).error,
+                    subtitle: errorMsg,
                 });
 
                 return [];
@@ -354,7 +351,7 @@ class ApiService {
             const data = await response.json();
 
             if (!response.ok) {
-                const errorMsg = data?.detail ?? data?.error ?? "Unknown error";
+                const errorMsg = await this.extractErrorMessage(response, data);
 
                 notificationsStore.addNotification({
                     kind: "error",
@@ -386,22 +383,19 @@ class ApiService {
                 },
             );
 
+            const data = await response.json();
+
             if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Get transcript topics failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
+                    subtitle: errorMsg,
                 });
-            }
-
-            const data: TranscriptTopicsResponse = await response.json();
-
-            if (data.error) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Get transcript topics failed",
-                    subtitle: data.error,
-                });
+                return {
+                    error: errorMsg,
+                    interview_topics_result: null,
+                };
             }
 
             return data;
@@ -448,22 +442,19 @@ class ApiService {
                 },
             );
 
+            const data = await response.json();
+
             if (!response.ok) {
+                const errorMsg = await this.extractErrorMessage(response, data);
                 notificationsStore.addNotification({
                     kind: "error",
                     title: "Get study themes failed",
-                    subtitle: `HTTP error! Status: ${response.status}`,
+                    subtitle: errorMsg,
                 });
-            }
-
-            const data: StudyThemesResponse = await response.json();
-
-            if (data.error) {
-                notificationsStore.addNotification({
-                    kind: "error",
-                    title: "Get study themes failed",
-                    subtitle: data.error,
-                });
+                return {
+                    error: errorMsg,
+                    study_topics_result: null,
+                };
             }
 
             return data;
