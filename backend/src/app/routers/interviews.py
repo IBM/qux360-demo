@@ -32,6 +32,10 @@ async def upload_study_interviews(
 @router.post("/{file_id}/identify-participant")
 async def identify_participant(file_id: int, payload: IdentifyParticipantPayload):
     """Extract speakers and identify the main participant for an interview."""
+    if not payload.llm_config:
+        raise HTTPException(
+            status_code=400, detail="LLM configuration is mandatory for this operation."
+        )
     try:
         result = await run_in_threadpool(
             interview_service.identify_participant_sync, file_id, payload.llm_config
@@ -117,6 +121,10 @@ async def get_suggested_topics_for_interview(
     payload: InterviewTopicsPayload,
 ):
     """Get AI-suggested topics for a single interview."""
+    if not payload.llm_config:
+        raise HTTPException(
+            status_code=400, detail="LLM configuration is mandatory for this operation."
+        )
     try:
         result = await run_in_threadpool(
             interview_service.get_interview_topics_sync,

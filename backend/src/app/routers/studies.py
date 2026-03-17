@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 @router.post("/{study_id}/suggest-themes")
 async def get_suggested_themes_for_study(study_id: str, payload: SuggestThemesPayload):
     """Get AI-suggested themes across all interviews in a study."""
+    if not payload.llm_config:
+        raise HTTPException(
+            status_code=400, detail="LLM configuration is mandatory for this operation."
+        )
     try:
         result = await run_in_threadpool(
             study_service.get_study_themes_sync,

@@ -23,18 +23,18 @@ class UpdateTranscriptPayload(BaseModel):
 
 
 class IdentifyParticipantPayload(BaseModel):
-    llm_config: LLMConfig
+    llm_config: LLMConfig | None = None
 
 
 class InterviewTopicsPayload(BaseModel):
-    llm_config: LLMConfig
+    llm_config: LLMConfig | None = None
     top_n: int = 5
     explain: bool = True
     interview_context: str = "General"
 
 
 class SuggestThemesPayload(BaseModel):
-    llm_config: LLMConfig
+    llm_config: LLMConfig | None = None
     topics: List[TopicList] | None = None
     top_n: int = 5
     study_context: str = "General"
