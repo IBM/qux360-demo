@@ -4,14 +4,13 @@ This repository is a web demo for [Qux360](https://github.com/IBM/qux360), an ex
 
 ## 📦 Installation
 
-`.env` files are needed for both the backend and the frontend. NOte that the underlying Qux360 library uses LiteLLM, i.e. you will need to specify your inference service in a way that is compatible with LiteLLM. Below is just an example for watsonx.
+`.env` files are needed for both the backend and the frontend. 
+
+> [!NOTE]
+> **LLM Configuration (BYOK):** This project supports "Bring Your Own Key". You don't need to specify LLM credentials in the `.env` file. Instead, you will be prompted to enter your provider (OpenAI, Ollama, or Watsonx) and API keys directly in the web UI upon first visit. These settings are persisted in your browser's local storage.
 
 `backend/.env`:
 ```
-MODEL_ID=watsonx/meta-llama/llama-3-3-70b-instruct
-WATSONX_URL=[your URL]
-WATSONX_API_KEY=[your API key]
-WATSONX_PROJECT_ID=[your project ID]
 DISABLE_AIOHTTP_TRANSPORT=True
 ```
 
