@@ -1,9 +1,27 @@
 <script lang="ts">
     import { APP_TITLE } from "$lib/common";
-    import { Header } from "carbon-components-svelte";
+    import {
+        Header,
+        HeaderGlobalAction,
+        HeaderUtilities,
+    } from "carbon-components-svelte";
+    import { Settings } from "carbon-icons-svelte";
+    import { createEventDispatcher } from "svelte";
+
+    const dispatch = createEventDispatcher();
 </script>
 
-<Header platformName={APP_TITLE} expandedByDefault={false} />
+<Header platformName={APP_TITLE} expandedByDefault={false}>
+    <HeaderUtilities>
+        <HeaderGlobalAction
+            aria-label="Settings"
+            icon={Settings}
+            iconDescription="Open LLM config"
+            tooltipAlignment="end"
+            on:click={() => dispatch("open-settings")}
+        />
+    </HeaderUtilities>
+</Header>
 
 <style lang="scss">
     :global(.bx--header) {
@@ -33,7 +51,12 @@
         border-bottom: 3px solid var(--cds-inverse-support-04) !important;
     }
 
-    :global(.bx--header__menu-toggle svg) {
-        fill: black;
+    :global(.bx--header__menu-toggle svg),
+    :global(.bx--header__action svg) {
+        fill: black !important;
+    }
+
+    :global(.bx--header__action:hover) {
+        background-color: var(--cds-hover-light-ui) !important;
     }
 </style>

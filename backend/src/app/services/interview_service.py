@@ -7,23 +7,14 @@ from typing import Any, List
 
 import pandas as pd
 from fastapi import UploadFile
-from mellea import MelleaSession
-from mellea.backends.litellm import LiteLLMBackend
 from qux360.core import Interview
+
+from app.models.schemas import LLMConfig
+from app.services.llm_service import get_mellea_session
 
 from app.repositories import study_repository, interview_repository
 
 logger = logging.getLogger(__name__)
-
-# Initialize Mellea session (keeping it simple as a module-level singleton for now, 
-# can be moved to a dependency factory if more complex config is needed)
-m = MelleaSession(
-    backend=LiteLLMBackend(
-        base_url=os.getenv("BASE_URL"), model_id=os.getenv("MODEL_ID")
-    )
-)
-# Suppress Mellea's FancyLogger
-logging.getLogger("fancy_logger").setLevel(logging.WARNING)
 
 
 def write_temp_file(row: dict[str, Any]) -> str:
@@ -67,13 +58,15 @@ def upload_interview_sync(study_name: str, files: List[UploadFile]):
             continue
         content = file.file.read()
         logger.info("Uploading file: %s, size: %d bytes", file.filename, len(content))
-        interview_id = interview_repository.save_or_update_interview(study_id, file.filename, content)
+        interview_id = interview_repository.save_or_update_interview(
+            study_id, file.filename, content
+        )
         uploaded_files.append({"file_id": interview_id, "filename": file.filename})
 
     return {"study_id": study_id, "uploaded_files": uploaded_files}
 
 
-def identify_participant_sync(file_id: int):
+def identify_participant_sync(file_id: int, llm_config: LLMConfig):
     row = interview_repository.get_interview_from_db(file_id)
     if not row:
         return {
@@ -83,11 +76,12 @@ def identify_participant_sync(file_id: int):
             "validation": None,
         }
 
+    mellea_session = get_mellea_session(llm_config)
     tmp_path = write_temp_file(row)
     try:
         i = Interview(tmp_path)
         speakers = i.get_speakers()
-        interviewee = i.identify_interviewee(m)
+        interviewee = i.identify_interviewee(mellea_session)
 
         return {
             "message": "Speakers found (participant identified)",
@@ -166,7 +160,9 @@ def update_transcript_sync(file_id: int, content: list[dict]):
 
     xlsx_bytes = json_to_xlsx_bytes(content)
     filename = Path(row["filename"]).stem + ".xlsx"
-    updated_id = interview_repository.update_interview_in_db(file_id, filename, xlsx_bytes)
+    updated_id = interview_repository.update_interview_in_db(
+        file_id, filename, xlsx_bytes
+    )
 
     return {
         "message": "Transcript updated",
@@ -179,17 +175,19 @@ def get_interview_topics_sync(
     top_n: int,
     explain: bool,
     interview_context: str,
+    llm_config: LLMConfig,
 ):
     row = interview_repository.get_interview_from_db(file_id)
     if not row:
         return {"interview_topics_result": None, "error": "file not found"}
 
+    mellea_session = get_mellea_session(llm_config)
     tmp_path = write_temp_file(row)
     try:
         i = Interview(tmp_path)
-        i.identify_interviewee(m)
+        i.identify_interviewee(mellea_session)
         topics_result = i.suggest_topics_top_down(
-            m,
+            mellea_session,
             top_n,
             explain,
             interview_context,

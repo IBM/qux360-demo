@@ -1,10 +1,24 @@
 <script lang="ts">
-    import { Header, Notifications } from "$lib/components";
+    import { Header, LLMConfigModal, Notifications } from "$lib/components";
+    import { llmConfigStore } from "$lib/stores";
     import { Content } from "carbon-components-svelte";
+    import { onMount } from "svelte";
+
+    let isConfigModalOpen: boolean = false;
+
+    onMount(() => {
+        if (!$llmConfigStore) {
+            isConfigModalOpen = true;
+        }
+    });
+
+    const handleOpenSettings = (): void => {
+        isConfigModalOpen = true;
+    };
 </script>
 
 <div class="page-container">
-    <Header />
+    <Header on:open-settings={handleOpenSettings} />
     <div class="page-content">
         <Notifications />
         <Content class="main-content-container">
@@ -12,6 +26,8 @@
         </Content>
     </div>
 </div>
+
+<LLMConfigModal bind:isModalOpen={isConfigModalOpen} />
 
 <style lang="scss">
     $header-height: 3rem;

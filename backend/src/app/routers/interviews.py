@@ -1,18 +1,21 @@
 import logging
 from typing import List
-
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
-from app.models.schemas import UpdateTranscriptPayload
+from app.models.schemas import (
+    IdentifyParticipantPayload,
+    InterviewTopicsPayload,
+    UpdateTranscriptPayload,
+)
 from app.services import interview_service
 
-router = APIRouter(tags=["interviews"])
+router = APIRouter(prefix="/interviews", tags=["Interviews"])
 logger = logging.getLogger(__name__)
 
 
-@router.post("/upload_study_interviews")
+@router.post("/upload")
 async def upload_study_interviews(
     study_name: str = Form(...), files: List[UploadFile] = File(...)
 ):
@@ -26,12 +29,12 @@ async def upload_study_interviews(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/identify_participant/{file_id}")
-async def identify_participant(file_id: int):
+@router.post("/{file_id}/identify-participant")
+async def identify_participant(file_id: int, payload: IdentifyParticipantPayload):
     """Extract speakers and identify the main participant for an interview."""
     try:
         result = await run_in_threadpool(
-            interview_service.identify_participant_sync, file_id
+            interview_service.identify_participant_sync, file_id, payload.llm_config
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
@@ -43,7 +46,7 @@ async def identify_participant(file_id: int):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/speakers_anonymization_map/{file_id}")
+@router.get("/{file_id}/anonymize/speakers")
 async def get_speakers_anonymization_map(file_id: int):
     """Generate a map for anonymizing speakers in an interview."""
     try:
@@ -60,7 +63,7 @@ async def get_speakers_anonymization_map(file_id: int):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/entities_anonymization_map/{file_id}")
+@router.get("/{file_id}/anonymize/entities")
 async def get_entities_anonymization_map(file_id: int):
     """Generate a map for anonymizing entities (names, places) in an interview."""
     try:
@@ -77,7 +80,9 @@ async def get_entities_anonymization_map(file_id: int):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/transcript/{file_id}")
+@router.get(
+    "/{file_id}/transcript",
+)
 async def get_transcript(file_id: int):
     """Get the processed transcript for an interview."""
     try:
@@ -90,13 +95,13 @@ async def get_transcript(file_id: int):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/update_transcript")
-async def update_transcript(payload: UpdateTranscriptPayload):
+@router.put("/{file_id}/transcript")
+async def update_transcript(file_id: int, payload: UpdateTranscriptPayload):
     """Update the transcript content for an interview."""
     try:
         return await run_in_threadpool(
             interview_service.update_transcript_sync,
-            payload.file_id,
+            file_id,
             payload.content,
         )
     except ValueError as e:
@@ -106,21 +111,20 @@ async def update_transcript(payload: UpdateTranscriptPayload):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/interview_topics/{file_id}")
+@router.post("/{file_id}/suggest-topics")
 async def get_suggested_topics_for_interview(
     file_id: int,
-    top_n: int = 5,
-    explain: bool = True,
-    interview_context: str = "General",
+    payload: InterviewTopicsPayload,
 ):
     """Get AI-suggested topics for a single interview."""
     try:
         result = await run_in_threadpool(
             interview_service.get_interview_topics_sync,
             file_id,
-            top_n,
-            explain,
-            interview_context,
+            payload.top_n,
+            payload.explain,
+            payload.interview_context,
+            payload.llm_config,
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])

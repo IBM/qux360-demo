@@ -15,7 +15,8 @@ import type {
     UploadTranscriptFilesResultI,
     UploadTranscriptFileSuccessI,
 } from "$lib/models";
-import { notificationsStore } from "$lib/stores";
+import { notificationsStore, llmConfigStore } from "$lib/stores";
+import { get } from "svelte/store";
 
 enum APIMethodsType {
     GET = "GET",
@@ -69,7 +70,7 @@ class ApiService {
             );
 
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/upload_study_interviews`,
+                `${this.BACKEND_API_URL}/interviews/upload`,
                 {
                     method: APIMethodsType.POST,
                     body: formData,
@@ -125,10 +126,13 @@ class ApiService {
     ): Promise<IdentifyParticipantResponse> {
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/identify_participant/${fileId}`,
+                `${this.BACKEND_API_URL}/interviews/${fileId}/identify-participant`,
                 {
-                    method: APIMethodsType.GET,
+                    method: APIMethodsType.POST,
                     headers: this.getHeaders(),
+                    body: JSON.stringify({
+                        llm_config: get(llmConfigStore),
+                    }),
                 },
             );
 
@@ -171,7 +175,7 @@ class ApiService {
     ): Promise<SpeakerAnonymizationResponse> {
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/speakers_anonymization_map/${fileId}`,
+                `${this.BACKEND_API_URL}/interviews/${fileId}/anonymize/speakers`,
                 {
                     method: APIMethodsType.GET,
                     headers: this.getHeaders(),
@@ -207,7 +211,7 @@ class ApiService {
     ): Promise<EntityAnonymizationResponse> {
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/entities_anonymization_map/${fileId}`,
+                `${this.BACKEND_API_URL}/interviews/${fileId}/anonymize/entities`,
                 {
                     method: APIMethodsType.GET,
                     headers: this.getHeaders(),
@@ -247,7 +251,7 @@ class ApiService {
 
         try {
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/transcript/${fileId}`,
+                `${this.BACKEND_API_URL}/interviews/${fileId}/transcript`,
                 {
                     method: APIMethodsType.GET,
                     headers: this.getHeaders(),
@@ -337,12 +341,11 @@ class ApiService {
                 transcript.entity_anonymization_map,
             );
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/update_transcript`,
+                `${this.BACKEND_API_URL}/interviews/${transcript.id}/transcript`,
                 {
-                    method: APIMethodsType.POST,
+                    method: APIMethodsType.PUT,
                     headers: this.getHeaders(),
                     body: JSON.stringify({
-                        file_id: transcript.id,
                         content: transcriptLines,
                     }),
                 },
@@ -376,10 +379,13 @@ class ApiService {
         try {
             await this.updateTranscript(transcript);
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/interview_topics/${transcript.id}`,
+                `${this.BACKEND_API_URL}/interviews/${transcript.id}/suggest-topics`,
                 {
-                    method: APIMethodsType.GET,
+                    method: APIMethodsType.POST,
                     headers: this.getHeaders(),
+                    body: JSON.stringify({
+                        llm_config: get(llmConfigStore),
+                    }),
                 },
             );
 
@@ -431,13 +437,13 @@ class ApiService {
                 ),
             );
             const response: Response = await fetch(
-                `${this.BACKEND_API_URL}/study_themes`,
+                `${this.BACKEND_API_URL}/studies/${study.id}/suggest-themes`,
                 {
                     method: APIMethodsType.POST,
                     headers: this.getHeaders(),
                     body: JSON.stringify({
-                        study_id: study.id,
                         topics: this.getAllTopicsFromStudy(study),
+                        llm_config: get(llmConfigStore),
                     }),
                 },
             );

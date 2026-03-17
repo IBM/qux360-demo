@@ -6,20 +6,21 @@ from fastapi.concurrency import run_in_threadpool
 from app.models.schemas import SuggestThemesPayload
 from app.services import study_service
 
-router = APIRouter(tags=["studies"])
+router = APIRouter(prefix="/studies", tags=["Studies"])
 logger = logging.getLogger(__name__)
 
 
-@router.post("/study_themes")
-async def get_suggested_themes_for_study(payload: SuggestThemesPayload):
+@router.post("/{study_id}/suggest-themes")
+async def get_suggested_themes_for_study(study_id: str, payload: SuggestThemesPayload):
     """Get AI-suggested themes across all interviews in a study."""
     try:
         result = await run_in_threadpool(
             study_service.get_study_themes_sync,
-            payload.study_id,
+            study_id,
             payload.topics,
             payload.top_n,
             payload.study_context,
+            payload.llm_config,
         )
         if "error" in result:
             # If study has no interviews, it's a 404 or 400 depending on preference
