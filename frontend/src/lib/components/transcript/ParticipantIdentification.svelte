@@ -64,8 +64,6 @@
         <AILabel
             headerText="Participant identification"
             bodyText="AI is used to identify which speaker is the interviewee based on conversation patterns and content."
-            modelName="granite.13b.v2.instruct"
-            modelLink=""
         />
     </div>
     {#if !$selectedTranscriptStore || $isParticipantIdentificationRunningStore}

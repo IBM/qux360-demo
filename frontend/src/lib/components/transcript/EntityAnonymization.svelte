@@ -7,7 +7,7 @@
         type TranscriptFileI,
         type TranscriptLineI,
     } from "$lib/models";
-    import { apiService, utilsService } from "$lib/services";
+    import { apiService } from "$lib/services";
     import {
         isParticipantIdentificationRunningStore,
         isRunningAnonymizationStore,
@@ -26,9 +26,6 @@
     import { Add, Close } from "carbon-icons-svelte";
     import { onDestroy, onMount } from "svelte";
     import type { Unsubscriber } from "svelte/store";
-
-    let runEntityAnonymizationButtonContentElementRef: HTMLElement;
-    let aiLabelSlugColor: string = "white";
 
     let entityAnonymizationMap: EntityAnonymizationMap = {};
     let extendedEntityAnonymizationMap: ExtendedEntityAnonymizationMap = {};
@@ -61,20 +58,7 @@
         $isRunningAnonymizationStore ||
         $isParticipantIdentificationRunningStore;
 
-    $: !isRunAnonymizationButtonLoading,
-        utilsService.updateAILabelSlugColor(
-            runEntityAnonymizationButtonContentElementRef,
-            aiLabelSlugColor,
-        );
-
     onMount(() => {
-        requestAnimationFrame(async () => {
-            await utilsService.updateAILabelSlugColor(
-                runEntityAnonymizationButtonContentElementRef,
-                aiLabelSlugColor,
-            );
-        });
-
         unsubscribeSelectedTranscriptStore = selectedTranscriptStore.subscribe(
             async (selectedTranscript: TranscriptFileI | null) => {
                 isLoadingTranscriptLines = true;
@@ -126,10 +110,6 @@
                 $selectedTranscriptStore.id,
             );
             isRunningEntityAnonymization = false;
-            await utilsService.updateAILabelSlugColor(
-                runEntityAnonymizationButtonContentElementRef,
-                aiLabelSlugColor,
-            );
         }
     };
 
@@ -252,16 +232,11 @@
                 await runTranscriptEntityAnonymization();
             }}
         >
-            <div
-                bind:this={runEntityAnonymizationButtonContentElementRef}
-                class="button-with-ai-label-container"
-            >
+            <div class="button-with-ai-label-container">
                 Run anonymization
                 <AILabel
                     headerText="Entity anonymization"
                     bodyText="AI is used to identify sensitive entities to anonymize, such as names, locations, and organizations."
-                    modelName="granite.13b.v2.instruct"
-                    modelLink=""
                     alignment="top-left"
                     kind="inline"
                 />

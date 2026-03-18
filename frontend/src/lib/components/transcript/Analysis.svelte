@@ -31,15 +31,11 @@
             <span>Approved topics ({approvedIdentifiedTopics.length})</span>
         </Switch>
         <Switch>
-            <div class="suggested-topics-content-switcher-title-container">
-                <span>
-                    Suggested topics ({suggestedIdentifiedTopics.length})
-                </span>
+            <div class="button-with-ai-label-container">
+                Suggested topics ({suggestedIdentifiedTopics.length})
                 <AILabel
                     headerText="Suggested topics"
                     bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."
-                    modelName="granite.13b.v2.instruct"
-                    modelLink=""
                     alignment="bottom-right"
                     kind="inline"
                 />
@@ -61,12 +57,6 @@
         display: flex;
         flex-direction: column;
         gap: 2rem;
-    }
-
-    .suggested-topics-content-switcher-title-container {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
     }
 
     :global(.topics-label) {

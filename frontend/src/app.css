@@ -8,7 +8,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   font-family: "IBM Plex Sans", Arial, sans-serif;
   background: linear-gradient(180deg, #FFFFFF 50%, #EDF5FF 100%);
@@ -35,6 +36,46 @@ html, body {
   min-width: 160px;
   width: fit-content;
   padding-right: 12px;
+}
+
+.bx--btn--primary .cds--ai-label.inline .cds--ai-label__button {
+  color: white;
+}
+
+.bx--btn--primary .cds--ai-label.inline .cds--ai-label__inline-icon {
+  background-color: white;
+}
+
+.bx--btn--tertiary .cds--ai-label.inline .cds--ai-label__button {
+  color: var(--cds-button-tertiary);
+}
+
+.bx--btn--tertiary .cds--ai-label.inline .cds--ai-label__inline-icon {
+  background-color: var(--cds-button-tertiary);
+}
+
+.bx--btn--tertiary:hover .cds--ai-label.inline .cds--ai-label__button {
+  color: white;
+}
+
+.bx--btn--tertiary:hover .cds--ai-label.inline .cds--ai-label__inline-icon {
+  background-color: white;
+}
+
+.bx--content-switcher-btn .cds--ai-label.inline .cds--ai-label__button {
+  color: black;
+}
+
+.bx--content-switcher-btn .cds--ai-label.inline .cds--ai-label__inline-icon {
+  background-color: black;
+}
+
+.bx--content-switcher--selected .cds--ai-label.inline .cds--ai-label__button {
+  color: white;
+}
+
+.bx--content-switcher--selected .cds--ai-label.inline .cds--ai-label__inline-icon {
+  background-color: white;
 }
 
 .bx--modal .bx--file__selected-file {

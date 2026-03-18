@@ -13,7 +13,6 @@
         type ThemeCardI,
         type ValidationI,
     } from "$lib/models";
-    import { utilsService } from "$lib/services";
     import {
         selectedStudyIdStore,
         selectedStudyStore,
@@ -30,7 +29,6 @@
         Tooltip,
     } from "carbon-components-svelte";
     import { Add, Checkmark, Close, Help } from "carbon-icons-svelte";
-    import { onMount } from "svelte";
     import { ThemeCard } from ".";
 
     let approvedIdentifiedThemes: IdentifiedThemeI[] = [];
@@ -41,9 +39,6 @@
     let searchThemeValue: string = "";
 
     let isAISettingsModalOpen: boolean = false;
-
-    let suggestThemesButtonContentElementRef: HTMLElement;
-    let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
     let themeCards: ThemeCardI[] = [];
     let openCards: Map<string, boolean> = new Map<string, boolean>();
@@ -79,21 +74,6 @@
             },
         );
     }
-
-    $: selectedContentSwitcherIndex,
-        utilsService.updateAILabelSlugColor(
-            suggestThemesButtonContentElementRef,
-            aiLabelSlugColor,
-        );
-
-    onMount(() => {
-        requestAnimationFrame(async () => {
-            await utilsService.updateAILabelSlugColor(
-                suggestThemesButtonContentElementRef,
-                aiLabelSlugColor,
-            );
-        });
-    });
 
     const handleSuggestThemesButtonClick = (): void => {
         if ($selectedStudyIdStore) {
@@ -144,15 +124,11 @@
             </span>
         </Switch>
         <Switch>
-            <div class="suggested-themes-content-switcher-title-container">
-                <span>
-                    Suggested themes ({suggestedIdentifiedThemes.length})
-                </span>
+            <div class="button-with-ai-label-container">
+                Suggested themes ({suggestedIdentifiedThemes.length})
                 <AILabel
                     headerText="Suggested themes"
                     bodyText="AI is used to analyze topics across multiple interviews to identify recurring themes."
-                    modelName="granite.13b.v2.instruct"
-                    modelLink=""
                     alignment="bottom-right"
                     kind="inline"
                 />
@@ -181,31 +157,12 @@
                 size="field"
                 skeleton={$selectedStudyStore?.status === StudyStatus.Running}
                 on:click={handleSuggestThemesButtonClick}
-                on:mouseenter={async () => {
-                    aiLabelSlugColor = "white";
-                    await utilsService.updateAILabelSlugColor(
-                        suggestThemesButtonContentElementRef,
-                        aiLabelSlugColor,
-                    );
-                }}
-                on:mouseleave={async () => {
-                    aiLabelSlugColor = "var(--cds-button-tertiary)";
-                    await utilsService.updateAILabelSlugColor(
-                        suggestThemesButtonContentElementRef,
-                        aiLabelSlugColor,
-                    );
-                }}
             >
-                <div
-                    bind:this={suggestThemesButtonContentElementRef}
-                    class="button-with-ai-label-container"
-                >
+                <div class="button-with-ai-label-container">
                     Suggest themes
                     <AILabel
                         headerText="Suggest themes"
                         bodyText="AI is used to analyze topics across multiple interviews to identify recurring themes."
-                        modelName="granite.13b.v2.instruct"
-                        modelLink=""
                         alignment="bottom-right"
                         kind="inline"
                     />
@@ -417,12 +374,6 @@
         flex-direction: column;
         gap: 1rem;
         padding: 2rem;
-    }
-
-    .suggested-themes-content-switcher-title-container {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
     }
 
     .action-bar {

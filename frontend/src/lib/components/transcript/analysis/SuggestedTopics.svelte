@@ -13,7 +13,6 @@
         type IdentifiedTopicI,
         type ValidationI,
     } from "$lib/models";
-    import { utilsService } from "$lib/services";
     import {
         selectedStudyIdStore,
         selectedStudyStore,
@@ -30,13 +29,9 @@
         Tooltip,
     } from "carbon-components-svelte";
     import { Checkmark, Close, Help } from "carbon-icons-svelte";
-    import { onMount } from "svelte";
     import CheckValidation from "./CheckValidation.svelte";
 
     export let identifiedTopics: IdentifiedTopicI[];
-
-    let runTopicExtractionButtonContentElementRef: HTMLElement;
-    let aiLabelSlugColor: string = "var(--cds-button-tertiary)";
 
     let isReRunTopicExtractionButtonLoading: boolean = false;
 
@@ -49,22 +44,6 @@
         !$selectedTranscriptStore ||
         $selectedTranscriptStore.status ===
             TranscriptStatus.RunningTopicSuggestion;
-
-    $: if (!isReRunTopicExtractionButtonLoading) {
-        utilsService.updateAILabelSlugColor(
-            runTopicExtractionButtonContentElementRef,
-            aiLabelSlugColor,
-        );
-    }
-
-    onMount(() => {
-        requestAnimationFrame(async () => {
-            await utilsService.updateAILabelSlugColor(
-                runTopicExtractionButtonContentElementRef,
-                aiLabelSlugColor,
-            );
-        });
-    });
 
     const getTopicCheckValidation = (
         checks: ValidationI[],
@@ -161,25 +140,8 @@
     on:click={() => {
         handleReRunTopicExtractionButtonClick();
     }}
-    on:mouseenter={async () => {
-        aiLabelSlugColor = "white";
-        await utilsService.updateAILabelSlugColor(
-            runTopicExtractionButtonContentElementRef,
-            aiLabelSlugColor,
-        );
-    }}
-    on:mouseleave={async () => {
-        aiLabelSlugColor = "var(--cds-button-tertiary)";
-        await utilsService.updateAILabelSlugColor(
-            runTopicExtractionButtonContentElementRef,
-            aiLabelSlugColor,
-        );
-    }}
 >
-    <div
-        bind:this={runTopicExtractionButtonContentElementRef}
-        class="button-with-ai-label-container"
-    >
+    <div class="button-with-ai-label-container">
         {#if identifiedTopics.length > 0}
             Re-run topic suggestion
         {:else}
@@ -188,8 +150,6 @@
         <AILabel
             headerText="Suggest topics"
             bodyText="AI is used to identify major topics in the transcript and provide supporting quotes. Major topics are determined based on the study description you provided."
-            modelName="granite.13b.v2.instruct"
-            modelLink=""
             alignment="bottom-left"
             kind="inline"
         />
