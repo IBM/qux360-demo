@@ -3,3 +3,4 @@ uvicorn[standard]
 python-multipart
 qux360
 python-dotenv
+pydantic
