@@ -1,113 +1,128 @@
 import logging
-import sqlite3
+import base64
 from typing import Any
 
-from app.database.connection import get_connection
+from app.database.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
 
 def save_or_update_interview(
-    study_id: str, filename: str, content: bytes
+    study_id: str, filename: str, content: bytes, user_id: str
 ) -> int:
     """
-    Insert a new interview row or update the content of an existing one.
+    Insert a new interview row or update the content of an existing one in Supabase.
     Returns the interview id.
     """
-    conn: sqlite3.Connection = get_connection()
-    try:
-        cur = conn.execute(
-            "SELECT id FROM Interviews WHERE study_id = ? AND filename = ?",
-            (study_id, filename),
+    supabase = get_supabase_client()
+
+    # Check if exists
+    response = (
+        supabase.table("interviews")
+        .select("id")
+        .eq("study_id", study_id)
+        .eq("filename", filename)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    content_b64 = base64.b64encode(content).decode("utf-8")
+
+    if response.data:
+        interview_id: int = response.data[0]["id"]
+        supabase.table("interviews").update({"content": content_b64}).eq(
+            "id", interview_id
+        ).execute()
+        logger.info("Updated interview '%s' (id=%d)", filename, interview_id)
+    else:
+        insert_response = (
+            supabase.table("interviews")
+            .insert(
+                {
+                    "study_id": study_id,
+                    "filename": filename,
+                    "content": content_b64,
+                    "user_id": user_id,
+                }
+            )
+            .execute()
         )
-        row = cur.fetchone()
+        interview_id = insert_response.data[0]["id"]
+        logger.info("Inserted interview '%s' (id=%d)", filename, interview_id)
 
-        if row:
-            interview_id: int = row[0]
-            conn.execute(
-                "UPDATE Interviews SET content = ? WHERE id = ?",
-                (content, interview_id),
-            )
-            logger.info("Updated interview '%s' (id=%d)", filename, interview_id)
-        else:
-            cur = conn.execute(
-                "INSERT INTO Interviews (study_id, filename, content) VALUES (?, ?, ?)",
-                (study_id, filename, content),
-            )
-            interview_id = cur.lastrowid  # type: ignore[assignment]
-            logger.info("Inserted interview '%s' (id=%d)", filename, interview_id)
-
-        conn.commit()
-        return interview_id
-    finally:
-        conn.close()
+    return interview_id
 
 
-def delete_removed_interviews(study_id: str, kept_filenames: list[str]) -> None:
+def delete_removed_interviews(
+    study_id: str, kept_filenames: list[str], user_id: str
+) -> None:
     """
-    Delete interviews belonging to *study_id* whose filenames are NOT in
-    *kept_filenames*.  If *kept_filenames* is empty, all interviews for the
-    study are removed.
+    Delete interviews belonging to *study_id* and *user_id* whose filenames are NOT in
+    *kept_filenames*.
     """
-    conn: sqlite3.Connection = get_connection()
-    try:
-        if kept_filenames:
-            placeholders = ",".join("?" * len(kept_filenames))
-            conn.execute(
-                f"DELETE FROM Interviews WHERE study_id = ? AND filename NOT IN ({placeholders})",
-                [study_id, *kept_filenames],
-            )
-        else:
-            conn.execute(
-                "DELETE FROM Interviews WHERE study_id = ?", (study_id,)
-            )
-        conn.commit()
-    finally:
-        conn.close()
+    supabase = get_supabase_client()
+    query = (
+        supabase.table("interviews")
+        .delete()
+        .eq("study_id", study_id)
+        .eq("user_id", user_id)
+    )
+
+    if kept_filenames:
+        query = query.not_.in_("filename", kept_filenames)
+
+    query.execute()
 
 
-def update_interview_in_db(file_id: int, filename: str, content: bytes) -> int:
+def update_interview_in_db(
+    file_id: int, filename: str, content: bytes, user_id: str
+) -> int:
     """Overwrite the filename and content of an existing interview. Returns file_id."""
-    conn: sqlite3.Connection = get_connection()
-    try:
-        conn.execute(
-            "UPDATE Interviews SET content = ?, filename = ? WHERE id = ?",
-            (sqlite3.Binary(content), filename, file_id),
-        )
-        conn.commit()
-        return file_id
-    finally:
-        conn.close()
+    supabase = get_supabase_client()
+    content_b64 = base64.b64encode(content).decode("utf-8")
+    supabase.table("interviews").update(
+        {"content": content_b64, "filename": filename}
+    ).eq("id", file_id).eq("user_id", user_id).execute()
+    return file_id
 
 
-def get_interview_from_db(file_id: int) -> dict[str, Any] | None:
+def get_interview_from_db(file_id: int, user_id: str) -> dict[str, Any] | None:
     """Return {filename, content} for the interview, or None if not found."""
-    conn: sqlite3.Connection = get_connection()
-    try:
-        cur = conn.execute(
-            "SELECT filename, content FROM Interviews WHERE id = ?", (file_id,)
-        )
-        row = cur.fetchone()
-        if not row:
-            return None
-        return {"filename": row[0], "content": row[1]}
-    finally:
-        conn.close()
+    supabase = get_supabase_client()
+    response = (
+        supabase.table("interviews")
+        .select("filename, content")
+        .eq("id", file_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not response.data:
+        return None
+
+    row = response.data[0]
+    # Decode base64 back to bytes
+    content = base64.b64decode(row["content"])
+    return {"filename": row["filename"], "content": content}
 
 
-def get_interviews_for_study_from_db(study_id: str) -> list[dict[str, Any]]:
-    """Return all interviews for a given study ordered by id."""
-    conn: sqlite3.Connection = get_connection()
-    try:
-        cur = conn.execute(
-            """
-            SELECT id, filename, content
-            FROM Interviews
-            WHERE study_id = ?
-            ORDER BY id
-            """,
-            (study_id,),
-        )
-        return [{"id": r[0], "filename": r[1], "content": r[2]} for r in cur.fetchall()]
-    finally:
-        conn.close()
+def get_interviews_for_study_from_db(
+    study_id: str, user_id: str
+) -> list[dict[str, Any]]:
+    """Return all interviews for a given study and user ordered by id."""
+    supabase = get_supabase_client()
+    response = (
+        supabase.table("interviews")
+        .select("id, filename, content")
+        .eq("study_id", study_id)
+        .eq("user_id", user_id)
+        .order("id")
+        .execute()
+    )
+    return [
+        {
+            "id": r["id"],
+            "filename": r["filename"],
+            "content": base64.b64decode(r["content"]),
+        }
+        for r in response.data
+    ]

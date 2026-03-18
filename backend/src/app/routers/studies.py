@@ -1,8 +1,8 @@
 import logging
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.concurrency import run_in_threadpool
 
+from app.database.auth import get_current_user_id
 from app.models.schemas import SuggestThemesPayload
 from app.services import study_service
 
@@ -11,7 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/{study_id}/suggest-themes")
-async def get_suggested_themes_for_study(study_id: str, payload: SuggestThemesPayload):
+async def get_suggested_themes_for_study(
+    study_id: str,
+    payload: SuggestThemesPayload,
+    user_id: str = Depends(get_current_user_id),
+):
     """Get AI-suggested themes across all interviews in a study."""
     if not payload.llm_config:
         raise HTTPException(
@@ -25,6 +29,7 @@ async def get_suggested_themes_for_study(study_id: str, payload: SuggestThemesPa
             payload.top_n,
             payload.study_context,
             payload.llm_config,
+            user_id,
         )
         if "error" in result:
             # If study has no interviews, it's a 404 or 400 depending on preference

@@ -1,9 +1,10 @@
 import logging
 from typing import List
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
+from app.database.auth import get_current_user_id
 from app.models.schemas import (
     IdentifyParticipantPayload,
     InterviewTopicsPayload,
@@ -17,12 +18,14 @@ logger = logging.getLogger(__name__)
 
 @router.post("/upload")
 async def upload_study_interviews(
-    study_name: str = Form(...), files: List[UploadFile] = File(...)
+    study_name: str = Form(...),
+    files: List[UploadFile] = File(...),
+    user_id: str = Depends(get_current_user_id),
 ):
     """Save uploaded interviews for a study and return their metadata."""
     try:
         return await run_in_threadpool(
-            interview_service.upload_interview_sync, study_name, files
+            interview_service.upload_interview_sync, study_name, files, user_id
         )
     except Exception as e:
         logger.exception("Upload failed")
@@ -30,7 +33,11 @@ async def upload_study_interviews(
 
 
 @router.post("/{file_id}/identify-participant")
-async def identify_participant(file_id: int, payload: IdentifyParticipantPayload):
+async def identify_participant(
+    file_id: int,
+    payload: IdentifyParticipantPayload,
+    user_id: str = Depends(get_current_user_id),
+):
     """Extract speakers and identify the main participant for an interview."""
     if not payload.llm_config:
         raise HTTPException(
@@ -38,7 +45,10 @@ async def identify_participant(file_id: int, payload: IdentifyParticipantPayload
         )
     try:
         result = await run_in_threadpool(
-            interview_service.identify_participant_sync, file_id, payload.llm_config
+            interview_service.identify_participant_sync,
+            file_id,
+            payload.llm_config,
+            user_id,
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
@@ -51,11 +61,13 @@ async def identify_participant(file_id: int, payload: IdentifyParticipantPayload
 
 
 @router.get("/{file_id}/anonymize/speakers")
-async def get_speakers_anonymization_map(file_id: int):
+async def get_speakers_anonymization_map(
+    file_id: int, user_id: str = Depends(get_current_user_id)
+):
     """Generate a map for anonymizing speakers in an interview."""
     try:
         result = await run_in_threadpool(
-            interview_service.speakers_anonymization_map_sync, file_id
+            interview_service.speakers_anonymization_map_sync, file_id, user_id
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
@@ -68,11 +80,13 @@ async def get_speakers_anonymization_map(file_id: int):
 
 
 @router.get("/{file_id}/anonymize/entities")
-async def get_entities_anonymization_map(file_id: int):
+async def get_entities_anonymization_map(
+    file_id: int, user_id: str = Depends(get_current_user_id)
+):
     """Generate a map for anonymizing entities (names, places) in an interview."""
     try:
         result = await run_in_threadpool(
-            interview_service.entities_anonymization_map_sync, file_id
+            interview_service.entities_anonymization_map_sync, file_id, user_id
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
@@ -87,10 +101,12 @@ async def get_entities_anonymization_map(file_id: int):
 @router.get(
     "/{file_id}/transcript",
 )
-async def get_transcript(file_id: int):
+async def get_transcript(file_id: int, user_id: str = Depends(get_current_user_id)):
     """Get the processed transcript for an interview."""
     try:
-        data = await run_in_threadpool(interview_service.transcript_sync, file_id)
+        data = await run_in_threadpool(
+            interview_service.transcript_sync, file_id, user_id
+        )
         return JSONResponse(content=data)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -100,13 +116,15 @@ async def get_transcript(file_id: int):
 
 
 @router.put("/{file_id}/transcript")
-async def update_transcript(file_id: int, payload: UpdateTranscriptPayload):
+async def update_transcript(
+    file_id: int,
+    payload: UpdateTranscriptPayload,
+    user_id: str = Depends(get_current_user_id),
+):
     """Update the transcript content for an interview."""
     try:
         return await run_in_threadpool(
-            interview_service.update_transcript_sync,
-            file_id,
-            payload.content,
+            interview_service.update_transcript_sync, file_id, payload.content, user_id
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -119,6 +137,7 @@ async def update_transcript(file_id: int, payload: UpdateTranscriptPayload):
 async def get_suggested_topics_for_interview(
     file_id: int,
     payload: InterviewTopicsPayload,
+    user_id: str = Depends(get_current_user_id),
 ):
     """Get AI-suggested topics for a single interview."""
     if not payload.llm_config:
@@ -133,6 +152,7 @@ async def get_suggested_topics_for_interview(
             payload.explain,
             payload.interview_context,
             payload.llm_config,
+            user_id,
         )
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])

@@ -35,9 +35,20 @@ class ApiService {
         }
     }
 
+    private getUserId(): string {
+        if (typeof window === "undefined") return "server-side";
+        let userId: string | null = localStorage.getItem("qux360_user_id");
+        if (!userId) {
+            userId = crypto.randomUUID();
+            localStorage.setItem("qux360_user_id", userId);
+        }
+        return userId;
+    }
+
     private getHeaders(): HeadersInit {
         return {
             "Content-Type": "application/json",
+            "X-User-ID": this.getUserId(),
         };
     }
 
@@ -73,6 +84,9 @@ class ApiService {
                 `${this.BACKEND_API_URL}/interviews/upload`,
                 {
                     method: APIMethodsType.POST,
+                    headers: {
+                        "X-User-ID": this.getUserId(),
+                    },
                     body: formData,
                 },
             );

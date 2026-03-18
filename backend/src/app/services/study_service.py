@@ -15,8 +15,9 @@ def get_study_themes_sync(
     top_n: int,
     study_context: str,
     llm_config: LLMConfig,
+    user_id: str,
 ):
-    rows = interview_repository.get_interviews_for_study_from_db(study_id)
+    rows = interview_repository.get_interviews_for_study_from_db(study_id, user_id)
     if not rows:
         return {
             "study_topics_result": None,

@@ -10,9 +10,8 @@ from fastapi import UploadFile
 from qux360.core import Interview
 
 from app.models.schemas import LLMConfig
-from app.services.llm_service import get_mellea_session
-
 from app.repositories import study_repository, interview_repository
+from app.services.llm_service import get_mellea_session
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +42,14 @@ def json_to_xlsx_bytes(records: list[dict]) -> bytes:
     return buffer.getvalue()
 
 
-def upload_interview_sync(study_name: str, files: List[UploadFile]):
-    study_id = study_repository.get_study_by_name(study_name)
+def upload_interview_sync(study_name: str, files: List[UploadFile], user_id: str):
+    study_id = study_repository.get_study_by_name(study_name, user_id)
     if not study_id:
-        study_id = study_repository.save_study(study_name)
+        study_id = study_repository.save_study(study_name, user_id)
 
     new_filenames = [file.filename for file in files if file.filename]
 
-    interview_repository.delete_removed_interviews(study_id, new_filenames)
+    interview_repository.delete_removed_interviews(study_id, new_filenames, user_id)
 
     uploaded_files = []
     for file in files:
@@ -59,15 +58,15 @@ def upload_interview_sync(study_name: str, files: List[UploadFile]):
         content = file.file.read()
         logger.info("Uploading file: %s, size: %d bytes", file.filename, len(content))
         interview_id = interview_repository.save_or_update_interview(
-            study_id, file.filename, content
+            study_id, file.filename, content, user_id
         )
         uploaded_files.append({"file_id": interview_id, "filename": file.filename})
 
     return {"study_id": study_id, "uploaded_files": uploaded_files}
 
 
-def identify_participant_sync(file_id: int, llm_config: LLMConfig):
-    row = interview_repository.get_interview_from_db(file_id)
+def identify_participant_sync(file_id: int, llm_config: LLMConfig, user_id: str):
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         return {
             "error": "file not found",
@@ -94,8 +93,8 @@ def identify_participant_sync(file_id: int, llm_config: LLMConfig):
             os.remove(tmp_path)
 
 
-def speakers_anonymization_map_sync(file_id: int):
-    row = interview_repository.get_interview_from_db(file_id)
+def speakers_anonymization_map_sync(file_id: int, user_id: str):
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         return {"speakers_anonymization_map": {}, "error": "file not found"}
 
@@ -113,8 +112,8 @@ def speakers_anonymization_map_sync(file_id: int):
             os.remove(tmp_path)
 
 
-def entities_anonymization_map_sync(file_id: int):
-    row = interview_repository.get_interview_from_db(file_id)
+def entities_anonymization_map_sync(file_id: int, user_id: str):
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         return {"entities_anonymization_map": {}, "error": "file not found"}
 
@@ -133,8 +132,8 @@ def entities_anonymization_map_sync(file_id: int):
             os.remove(tmp_path)
 
 
-def transcript_sync(file_id: int):
-    row = interview_repository.get_interview_from_db(file_id)
+def transcript_sync(file_id: int, user_id: str):
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         raise ValueError("file not found")
 
@@ -153,15 +152,15 @@ def transcript_sync(file_id: int):
             os.remove(tmp_path)
 
 
-def update_transcript_sync(file_id: int, content: list[dict]):
-    row = interview_repository.get_interview_from_db(file_id)
+def update_transcript_sync(file_id: int, content: list[dict], user_id: str):
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         raise ValueError("file not found")
 
     xlsx_bytes = json_to_xlsx_bytes(content)
     filename = Path(row["filename"]).stem + ".xlsx"
     updated_id = interview_repository.update_interview_in_db(
-        file_id, filename, xlsx_bytes
+        file_id, filename, xlsx_bytes, user_id
     )
 
     return {
@@ -176,8 +175,9 @@ def get_interview_topics_sync(
     explain: bool,
     interview_context: str,
     llm_config: LLMConfig,
+    user_id: str,
 ):
-    row = interview_repository.get_interview_from_db(file_id)
+    row = interview_repository.get_interview_from_db(file_id, user_id)
     if not row:
         return {"interview_topics_result": None, "error": "file not found"}
 
