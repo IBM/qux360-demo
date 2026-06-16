@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { ProgressStepI } from "$lib/models";
+    import { studiesStore } from "$lib/stores";
     import { Button, Stack, TextInput } from "carbon-components-svelte";
 
     export let isCreatingStudy: boolean;
@@ -8,11 +9,22 @@
     export let studyName: string;
     export let studyDescription: string;
 
+    $: trimmedName = studyName.trim();
+    $: isDuplicate = $studiesStore.some(
+        (study) =>
+            study.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    $: isNextDisabled =
+        trimmedName === "" || studyDescription.trim() === "" || isDuplicate;
+
     const cancelButtonClick = () => {
         isCreatingStudy = false;
     };
 
     const nextButtonClick = () => {
+        if (isNextDisabled) {
+            return;
+        }
         steps[currentStepIndex].isComplete = true;
         currentStepIndex++;
     };
@@ -22,6 +34,8 @@
     <Stack gap={5}>
         <TextInput
             bind:value={studyName}
+            invalid={isDuplicate}
+            invalidText="A study with this name already exists."
             labelText="Study name"
             placeholder=""
             required
@@ -40,7 +54,7 @@
         <Button kind="secondary" on:click={cancelButtonClick}>Cancel</Button>
         <Button
             kind="primary"
-            disabled={studyName.trim() === "" || studyDescription.trim() === ""}
+            disabled={isNextDisabled}
             on:click={nextButtonClick}
         >
             Next
