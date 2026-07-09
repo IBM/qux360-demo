@@ -14,7 +14,8 @@ WORKDIR $HOME/app
 
 # Install dependencies as the user
 COPY --chown=user requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt && \
+    python -m spacy download en_core_web_sm
 
 # Copy backend source
 COPY --chown=user . $HOME/app
